@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Auth Test</title>
+</head>
+<body>
+  <h1>Register / Login Test</h1>
+
+  <h2>Register</h2>
+  <input id="regName" placeholder="Name">
+  <input id="regEmail" placeholder="Email">
+  <input id="regPassword" placeholder="Password" type="password">
+  <input id="regCity" placeholder="City">
+  <button onclick="register()">Register</button>
+  <pre id="regResult"></pre>
+
+  <h2>Login</h2>
+  <input id="loginEmail" placeholder="Email">
+  <input id="loginPassword" placeholder="Password" type="password">
+  <button onclick="login()">Login</button>
+  <pre id="loginResult"></pre>
+
+  <script>
+    const API_URL = "http://localhost:4040/api/auth";
+
+    async function register() {
+      const name = document.getElementById("regName").value;
+      const email = document.getElementById("regEmail").value;
+      const password = document.getElementById("regPassword").value;
+      const city = document.getElementById("regCity").value;
+
+      const res = await fetch(`${API_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, city })
+      });
+
+      const data = await res.json();
+      document.getElementById("regResult").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function login() {
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+
+      const res = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+      document.getElementById("loginResult").textContent = JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>

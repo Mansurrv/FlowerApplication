@@ -1,0 +1,13 @@
+// lib/services/api_service.dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+class ApiService {
+  static const String baseUrl = 'https://your-api-url.com/api';
+  
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    // ... existing login code ...
+  }
+
+  // UPDATED: Add city parameter
+}
