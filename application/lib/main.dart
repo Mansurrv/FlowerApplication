@@ -90,23 +90,35 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    final headerPadding = isKeyboardVisible ? 24.0 : 60.0;
+    final logoSize = isKeyboardVisible ? 40.0 : 56.0;
+    final titleSize = isKeyboardVisible ? 24.0 : 32.0;
+    final headerGap = isKeyboardVisible ? 8.0 : 12.0;
+    final sectionSpacing = isKeyboardVisible ? 16.0 : 32.0;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
             // --- Logo Header ---
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 60),
+            AnimatedPadding(
+              padding: EdgeInsets.symmetric(vertical: headerPadding),
+              duration: const Duration(milliseconds: 200),
               child: Column(
                 children: [
-                  Icon(Icons.spa, size: 56, color: Colors.pink),
-                  SizedBox(height: 12),
+                  Image.asset(
+                    'images/splash.png',
+                    height: logoSize,
+                    fit: BoxFit.contain,
+                  ),
+                  SizedBox(height: headerGap),
                   Text(
-                    'InFloral',
+                    'infloral',
                     style: TextStyle(
-                      fontSize: 32,
+                      fontSize: titleSize,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 2,
                       color: Colors.black87,
@@ -210,7 +222,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
               ),
             ),
 
-            SizedBox(height: 32),
+            SizedBox(height: sectionSpacing),
 
             // -- Forms --
             Expanded(
@@ -360,12 +372,17 @@ class _LoginFormState extends State<LoginForm> {
     // Remove Provider.of line since we're getting it from constructor
     // final authService = Provider.of<AuthService>(context); // DELETE THIS
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          children: [
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
             // Email Field
             _MinimalTextField(
               controller: _emailController,
@@ -569,7 +586,8 @@ class _LoginFormState extends State<LoginForm> {
                       ),
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -757,6 +775,10 @@ class _RegisterFormState extends State<RegisterForm> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         child: Form(
