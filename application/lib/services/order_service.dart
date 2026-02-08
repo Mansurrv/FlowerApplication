@@ -1,14 +1,12 @@
 // services/order_service.dart
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:application/services/api_client.dart';
 import '../models/order_item.dart';
 
 class OrderService {
-  static const String baseUrl = 'http://localhost:4040/api/orders';
-
   Future<Order> createOrder(Order order) async {
-    final response = await http.post(
-      Uri.parse(baseUrl),
+    final response = await ApiClient.post(
+      '/api/orders',
       headers: {'Content-Type': 'application/json'},
       body: json.encode(order.toJson()),
     );
@@ -21,7 +19,7 @@ class OrderService {
   }
 
   Future<List<Order>> getUserOrders(String userId) async {
-    final response = await http.get(Uri.parse('$baseUrl/user/$userId'));
+    final response = await ApiClient.get('/api/orders/user/$userId');
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -33,7 +31,7 @@ class OrderService {
 
   // Add method to get florist orders
   Future<List<Order>> getFloristOrders(String floristId) async {
-    final response = await http.get(Uri.parse('$baseUrl/florist/$floristId'));
+    final response = await ApiClient.get('/api/orders/florist/$floristId');
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);

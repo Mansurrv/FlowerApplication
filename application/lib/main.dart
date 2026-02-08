@@ -8,7 +8,7 @@ import 'package:application/screens/home_screen.dart';
 import 'package:application/services/auth_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:application/services/api_client.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
@@ -684,8 +684,8 @@ class _RegisterFormState extends State<RegisterForm> {
     });
 
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/cities'),
+      final response = await ApiClient.get(
+        '/api/cities',
         headers: {'Accept': 'application/json'},
       );
 

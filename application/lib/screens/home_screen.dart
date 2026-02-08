@@ -3,12 +3,12 @@ import 'package:application/screens/profile_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:application/services/api_client.dart';
 import '../services/auth_service.dart';
 import '../screens/basket_screen.dart';
 import '../provider/basket_provider.dart';
 import '../models/basket_item.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../screens/orders_screen.dart'; // Add this import for the orders screen
 
 class HomeScreen extends StatefulWidget {
@@ -104,10 +104,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final response = await http.get(
-        Uri.parse(
-          'http://localhost:4040/api/flowers/search?q=${Uri.encodeComponent(query)}',
-        ),
+      final response = await ApiClient.get(
+        '/api/flowers/search',
+        queryParameters: {'q': query},
         headers: {'Accept': 'application/json'},
       );
 
@@ -196,8 +195,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/flowers'),
+      final response = await ApiClient.get(
+        '/api/flowers',
         headers: {'Accept': 'application/json'},
       );
 
@@ -285,8 +284,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<List<String>> _fetchCategoryNames() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/categories'),
+      final response = await ApiClient.get(
+        '/api/categories',
         headers: {'Accept': 'application/json'},
       );
       if (response.statusCode == 200) {
@@ -1064,8 +1063,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<List<Map<String, dynamic>>> _fetchCategories() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/categories'),
+      final response = await ApiClient.get(
+        '/api/categories',
         headers: {'Accept': 'application/json'},
       );
 
@@ -1258,8 +1257,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<List<Map<String, dynamic>>> _fetchPopularFlowers() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/flowers/popular'),
+      final response = await ApiClient.get(
+        '/api/flowers/popular',
         headers: {'Accept': 'application/json'},
       );
 
@@ -1292,8 +1291,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<List<Map<String, dynamic>>> _fetchAllFlowers() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/flowers'),
+      final response = await ApiClient.get(
+        '/api/flowers',
         headers: {'Accept': 'application/json'},
       );
 

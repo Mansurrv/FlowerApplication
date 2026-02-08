@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:application/services/api_client.dart';
 
 class DeliverOrdersScreen extends StatefulWidget {
   final String authToken;
@@ -37,12 +37,12 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
     });
 
     try {
-      final availableResponse = await http.get(
-        Uri.parse('http://localhost:4040/api/orders/available'),
+      final availableResponse = await ApiClient.get(
+        '/api/orders/available',
         headers: {'Accept': 'application/json'},
       );
-      final myResponse = await http.get(
-        Uri.parse('http://localhost:4040/api/orders/deliver/${widget.userId}'),
+      final myResponse = await ApiClient.get(
+        '/api/orders/deliver/${widget.userId}',
         headers: {'Accept': 'application/json'},
       );
 
@@ -120,8 +120,8 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
 
   Future<void> _acceptOrder(String orderId) async {
     try {
-      final assignResponse = await http.put(
-        Uri.parse('http://localhost:4040/api/orders/$orderId/assign-deliver'),
+      final assignResponse = await ApiClient.put(
+        '/api/orders/$orderId/assign-deliver',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -144,8 +144,8 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
 
   Future<void> _updateStatus(String orderId, String status) async {
     try {
-      final response = await http.put(
-        Uri.parse('http://localhost:4040/api/orders/$orderId/status'),
+      final response = await ApiClient.put(
+        '/api/orders/$orderId/status',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

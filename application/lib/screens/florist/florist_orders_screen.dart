@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:application/services/api_client.dart';
 
 class FloristOrdersScreen extends StatefulWidget {
   final String authToken;
@@ -64,8 +64,8 @@ class _FloristOrdersScreenState extends State<FloristOrdersScreen> {
     try {
       // First, try to get ALL orders to see what we have
       _debugInfo.add('Fetching all orders from /api/orders');
-      final allOrdersResponse = await http.get(
-        Uri.parse('http://localhost:4040/api/orders'),
+      final allOrdersResponse = await ApiClient.get(
+        '/api/orders',
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer ${widget.authToken}',
@@ -103,10 +103,8 @@ class _FloristOrdersScreenState extends State<FloristOrdersScreen> {
             'Trying to fetch orders for florist ID: $testFloristId',
           );
           try {
-            final floristResponse = await http.get(
-              Uri.parse(
-                'http://localhost:4040/api/orders/florist/$testFloristId',
-              ),
+            final floristResponse = await ApiClient.get(
+              '/api/orders/florist/$testFloristId',
               headers: {
                 'Accept': 'application/json',
                 'Authorization': 'Bearer ${widget.authToken}',
@@ -360,8 +358,8 @@ class _FloristOrdersScreenState extends State<FloristOrdersScreen> {
 
   Future<void> _updateOrderStatus(String orderId, String status) async {
     try {
-      final response = await http.put(
-        Uri.parse('http://localhost:4040/api/orders/$orderId/status'),
+      final response = await ApiClient.put(
+        '/api/orders/$orderId/status',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.authToken}',

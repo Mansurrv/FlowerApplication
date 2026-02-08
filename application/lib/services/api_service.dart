@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:application/services/api_client.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:4040';
-
   Future<void> logout() async {
     try {
       // If your backend has a logout endpoint, call it here
@@ -31,8 +29,8 @@ class ApiService {
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/login'),
+      final response = await ApiClient.post(
+        '/api/auth/login',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -68,8 +66,8 @@ class ApiService {
     required String city, // ADD THIS
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/register'),
+      final response = await ApiClient.post(
+        '/api/auth/register',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -112,8 +110,8 @@ class ApiService {
     Map<String, dynamic> updates,
   ) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/api/users/profile'),
+      final response = await ApiClient.put(
+        '/api/users/profile',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -147,8 +145,8 @@ class ApiService {
     String newPassword,
   ) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/reset-password'),
+      final response = await ApiClient.post(
+        '/api/auth/reset-password',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

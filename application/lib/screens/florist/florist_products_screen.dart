@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:application/services/api_client.dart';
 
 class FloristProductsScreen extends StatefulWidget {
   final String authToken;
@@ -45,8 +45,8 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
 
   Future<void> _fetchCategories() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/categories'),
+      final response = await ApiClient.get(
+        '/api/categories',
         headers: {'Accept': 'application/json'},
       );
 
@@ -77,8 +77,8 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
         print('Fetching florist flowers...');
       }
 
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/florists/flowers'),
+      final response = await ApiClient.get(
+        '/api/florists/flowers',
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer ${widget.authToken}',
@@ -282,8 +282,8 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('http://localhost:4040/api/flowers'),
+      final response = await ApiClient.post(
+        '/api/flowers',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.authToken}',
@@ -327,8 +327,8 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
     });
 
     try {
-      final response = await http.put(
-        Uri.parse('http://localhost:4040/api/flowers/$_editingFlowerId'),
+      final response = await ApiClient.put(
+        '/api/flowers/$_editingFlowerId',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.authToken}',
@@ -387,8 +387,8 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
     });
 
     try {
-      final response = await http.delete(
-        Uri.parse('http://localhost:4040/api/flowers/$flowerId'),
+      final response = await ApiClient.delete(
+        '/api/flowers/$flowerId',
         headers: {'Authorization': 'Bearer ${widget.authToken}'},
       );
 
