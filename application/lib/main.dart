@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:application/provider/basket_provider.dart';
+import 'package:application/screens/admin/admin_dashboard.dart';
 import 'package:application/screens/florist/florist_dashboard.dart';
 import 'package:application/screens/deliver/deliver_dashboard.dart';
 import 'package:application/screens/home_screen.dart';
@@ -41,7 +42,11 @@ class MyApp extends StatelessWidget {
       print('Token exists: ${authToken.isNotEmpty}');
     }
 
-    if (userType == 'florist' && authToken.isNotEmpty && userId.isNotEmpty) {
+    if (userType == 'admin' && authToken.isNotEmpty && userId.isNotEmpty) {
+      return AdminDashboard(authToken: authToken, authService: authService);
+    } else if (userType == 'florist' &&
+        authToken.isNotEmpty &&
+        userId.isNotEmpty) {
       return FloristDashboard(authToken: authToken, userId: userId);
     } else if (userType == 'deliver' &&
         authToken.isNotEmpty &&
@@ -459,7 +464,19 @@ class _LoginFormState extends State<LoginForm> {
                             }
 
                             // Navigate based on user type
-                            if (userType == 'florist' &&
+                            if (userType == 'admin' &&
+                                authToken.isNotEmpty &&
+                                userId.isNotEmpty) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AdminDashboard(
+                                    authToken: authToken,
+                                    authService: widget.authService,
+                                  ),
+                                ),
+                              );
+                            } else if (userType == 'florist' &&
                                 authToken.isNotEmpty &&
                                 userId.isNotEmpty) {
                               Navigator.pushReplacement(
@@ -496,9 +513,13 @@ class _LoginFormState extends State<LoginForm> {
                             }
 
                             // Show welcome message with role
-                            final roleText = userType == 'florist'
-                                ? 'Florist'
-                                : 'User';
+                            final roleText = userType == 'admin'
+                                ? 'Admin'
+                                : userType == 'florist'
+                                    ? 'Florist'
+                                    : userType == 'deliver'
+                                        ? 'Delivery Partner'
+                                        : 'User';
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Welcome back, $roleText!'),

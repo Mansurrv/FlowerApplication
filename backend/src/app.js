@@ -13,6 +13,7 @@ const routeRoutes = require("./routes/route.routes");
 const cityRoutes = require("./routes/city.routes");
 const connectionRoutes = require("./routes/connection.routes")
 const floristRoutes = require('./routes/florist.routes');
+const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
 
@@ -35,5 +36,6 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/routes", routeRoutes);
 app.use('/api/florists', floristRoutes);
 app.use("/api/connection", connectionRoutes)
+app.use("/api/admin", adminRoutes);
 
 module.exports = app;
