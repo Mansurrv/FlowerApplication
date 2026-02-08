@@ -5,16 +5,18 @@ class ApiClient {
     'API_BASE_URL',
     defaultValue: 'https://flowerapplication.onrender.com',
   );
-  static const Duration requestTimeout = Duration(seconds: 10);
+  static const Duration defaultRequestTimeout = Duration(seconds: 30);
 
   static Future<http.Response> get(
     String path, {
     Map<String, String>? headers,
     Map<String, String>? queryParameters,
+    Duration? timeout,
   }) {
-    return _withFallback(
+    return _send(
       (uri) => http.get(uri, headers: headers),
       path,
+      timeout: timeout,
       queryParameters: queryParameters,
     );
   }
@@ -24,10 +26,12 @@ class ApiClient {
     Map<String, String>? headers,
     Object? body,
     Map<String, String>? queryParameters,
+    Duration? timeout,
   }) {
-    return _withFallback(
+    return _send(
       (uri) => http.post(uri, headers: headers, body: body),
       path,
+      timeout: timeout,
       queryParameters: queryParameters,
     );
   }
@@ -37,10 +41,12 @@ class ApiClient {
     Map<String, String>? headers,
     Object? body,
     Map<String, String>? queryParameters,
+    Duration? timeout,
   }) {
-    return _withFallback(
+    return _send(
       (uri) => http.put(uri, headers: headers, body: body),
       path,
+      timeout: timeout,
       queryParameters: queryParameters,
     );
   }
@@ -50,10 +56,12 @@ class ApiClient {
     Map<String, String>? headers,
     Object? body,
     Map<String, String>? queryParameters,
+    Duration? timeout,
   }) {
-    return _withFallback(
+    return _send(
       (uri) => http.patch(uri, headers: headers, body: body),
       path,
+      timeout: timeout,
       queryParameters: queryParameters,
     );
   }
@@ -63,10 +71,12 @@ class ApiClient {
     Map<String, String>? headers,
     Object? body,
     Map<String, String>? queryParameters,
+    Duration? timeout,
   }) {
-    return _withFallback(
+    return _send(
       (uri) => http.delete(uri, headers: headers, body: body),
       path,
+      timeout: timeout,
       queryParameters: queryParameters,
     );
   }
@@ -88,12 +98,14 @@ class ApiClient {
     return uri.replace(queryParameters: merged);
   }
 
-  static Future<http.Response> _withFallback(
+  static Future<http.Response> _send(
     Future<http.Response> Function(Uri) send,
     String path, {
     Map<String, String>? queryParameters,
+    Duration? timeout,
   }) async {
     final primaryUri = _buildUri(primaryBaseUrl, path, queryParameters);
-    return await send(primaryUri).timeout(requestTimeout);
+    final effectiveTimeout = timeout ?? defaultRequestTimeout;
+    return await send(primaryUri).timeout(effectiveTimeout);
   }
 }
