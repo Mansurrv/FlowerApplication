@@ -486,6 +486,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     } else {
       return AppBar(
+        automaticallyImplyLeading: false,
         leadingWidth: 80,
         backgroundColor: Colors.white,
         elevation: 1,
@@ -1293,12 +1294,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<List<Map<String, dynamic>>> _fetchPopularFlowers() async {
     try {
       final response = await ApiClient.get(
-        '/api/flowers/popular',
+        '/api/flowers?limit=5&page=1&sort=-createdAt&available=true',
         headers: {'Accept': 'application/json'},
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final dynamic decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is Map<String, dynamic> &&
+                decoded['data'] is List
+            ? decoded['data'] as List<dynamic>
+            : decoded is List
+                ? decoded
+                : [];
         return data.map((flower) {
           final floristId = flower['floristId'] is Map
               ? flower['floristId']['_id']?.toString()
@@ -1316,10 +1323,12 @@ class _HomeScreenState extends State<HomeScreen> {
           };
         }).toList();
       } else {
-        return await _fetchAllFlowers();
+        final all = await _fetchAllFlowers();
+        return all.take(5).toList();
       }
     } catch (e) {
-      return await _fetchAllFlowers();
+      final all = await _fetchAllFlowers();
+      return all.take(5).toList();
     }
   }
 
@@ -1331,7 +1340,13 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final dynamic decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is Map<String, dynamic> &&
+                decoded['data'] is List
+            ? decoded['data'] as List<dynamic>
+            : decoded is List
+                ? decoded
+                : [];
         return data.map((flower) {
           final floristId = flower['floristId'] is Map
               ? flower['floristId']['_id']?.toString()
