@@ -1,15 +1,28 @@
 const City = require("../models/City");
+const { applyQueryOptions, buildPaginationMeta } = require("../utils/query");
 
-exports.getCities = async (req, res) => {
+exports.getCities = async (req, res, next) => {
   try {
-    const cities = await City.find().sort({ name: 1 });
+    const { query, pagination } = applyQueryOptions(City.find(), req.query, {
+      defaultSort: "name",
+    });
+    const cities = await query;
+
+    if (pagination) {
+      const total = await City.countDocuments();
+      return res.json({
+        data: cities,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
     res.json(cities);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-exports.addCity = async (req, res) => {
+exports.addCity = async (req, res, next) => {
   try {
     const { name } = req.body;
 
@@ -19,6 +32,6 @@ exports.addCity = async (req, res) => {
     const city = await City.create({ name });
     res.status(201).json(city);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };

@@ -1,21 +1,22 @@
 const router = require("express").Router();
 const Order = require("../models/Order");
-const Flower = require("../models/Flower"); // Add this import
+const Flower = require("../models/Flower"); 
+const { applyQueryOptions, buildPaginationMeta } = require("../utils/query");
 
-// In order.routes.js, update the POST endpoint
+
 router.post("/", async (req, res) => {
   try {
     console.log('Creating order with data:', req.body);
     
-    // Validate required fields
+    
     if (!req.body.userId || !req.body.totalPrice || !req.body.city || !req.body.items) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    // If floristId is not provided in request, try to get it from the first item
+    
     if (!req.body.floristId && req.body.items && req.body.items.length > 0) {
       try {
-        // Get the flower details to extract floristId
+        
         const firstFlower = await Flower.findById(req.body.items[0].flowerId);
         if (firstFlower && firstFlower.floristId) {
           req.body.floristId = firstFlower.floristId;
@@ -35,102 +36,216 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
-  const orders = await Order.find()
-    .populate("userId", "name phone city")
-    .populate("floristId", "name shopName email")
-    .populate("deliverId", "name vehicleType")
-    .sort({ createdAt: -1 }); // Sort by newest first
+router.get("/", async (req, res, next) => {
+  try {
+    const filter = {};
 
-  res.json(orders);
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+
+    if (req.query.userId) {
+      filter.userId = req.query.userId;
+    }
+
+    if (req.query.floristId) {
+      filter.floristId = req.query.floristId;
+    }
+
+    if (req.query.deliverId) {
+      filter.deliverId = req.query.deliverId;
+    }
+
+    const baseQuery = Order.find(filter)
+      .populate("userId", "name phone city")
+      .populate("floristId", "name shopName email")
+      .populate("deliverId", "name vehicleType");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
+
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
+    res.json(orders);
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Get orders for a specific user (customer)
-router.get("/user/:userId", async (req, res) => {
-  const orders = await Order.find({ userId: req.params.userId })
-    .populate("floristId", "name shopName")
-    .sort({ createdAt: -1 });
-  res.json(orders);
+
+router.get("/user/:userId", async (req, res, next) => {
+  try {
+    const filter = { userId: req.params.userId };
+    const baseQuery = Order.find(filter)
+      .populate("floristId", "name shopName");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
+
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
+    res.json(orders);
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Get orders for a specific florist - IMPROVED VERSION
-router.get("/florist/:floristId", async (req, res) => {
+
+router.get("/florist/:floristId", async (req, res, next) => {
   try {
     console.log('Fetching orders for florist:', req.params.floristId);
     
-    // Find orders where floristId matches OR where items contain products from this florist
-    const orders = await Order.find({
+    
+    const filter = {
       $or: [
         { floristId: req.params.floristId },
-        // You could also search in items if you store floristId there
-        // { "items.floristId": req.params.floristId }
+        
+        
       ]
-    })
-    .populate("userId", "name phone email city")
-    .populate("floristId", "name shopName email")
-    .populate("deliverId", "name phone")
-    .sort({ createdAt: -1 });
+    };
+
+    const baseQuery = Order.find(filter)
+      .populate("userId", "name phone email city")
+      .populate("floristId", "name shopName email")
+      .populate("deliverId", "name phone");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
     
     console.log(`Found ${orders.length} orders for florist ${req.params.floristId}`);
+
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
     res.json(orders);
   } catch (err) {
     console.error('Error fetching florist orders:', err);
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// Get orders assigned to a delivery partner
-router.get("/deliver/:deliverId", async (req, res) => {
+
+router.get("/deliver/:deliverId", async (req, res, next) => {
   try {
-    const orders = await Order.find({ deliverId: req.params.deliverId })
+    const filter = { deliverId: req.params.deliverId };
+    const baseQuery = Order.find(filter)
       .populate("userId", "name phone email city")
-      .populate("floristId", "name shopName email")
-      .sort({ createdAt: -1 });
+      .populate("floristId", "name shopName email");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
+
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// Get available orders for delivery
-router.get("/available", async (req, res) => {
+
+router.get("/available", async (req, res, next) => {
   try {
-    const orders = await Order.find({
+    const filter = {
       status: { $in: ["confirmed", "preparing", "delivering"] },
       $or: [
         { deliverId: { $exists: false } },
         { deliverId: null },
         { deliverId: "" },
       ],
-    })
+    };
+
+    const baseQuery = Order.find(filter)
       .populate("userId", "name phone email city")
-      .populate("floristId", "name shopName email")
-      .sort({ createdAt: -1 });
+      .populate("floristId", "name shopName email");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
+
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// NEW: Get orders by flower ID (useful for florists to see who ordered specific flowers)
-router.get("/flower/:flowerId", async (req, res) => {
+
+router.get("/flower/:flowerId", async (req, res, next) => {
   try {
-    const orders = await Order.find({
-      "items.flowerId": req.params.flowerId
-    })
-    .populate("userId", "name phone email city")
-    .populate("floristId", "name shopName email")
-    .populate("deliverId", "name phone")
-    .sort({ createdAt: -1 });
+    const filter = { "items.flowerId": req.params.flowerId };
+
+    const baseQuery = Order.find(filter)
+      .populate("userId", "name phone email city")
+      .populate("floristId", "name shopName email")
+      .populate("deliverId", "name phone");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
+    
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
     
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// NEW: Get orders that need floristId to be populated (for fixing existing orders)
-router.get("/fix/florist", async (req, res) => {
+
+router.get("/fix/florist", async (req, res, next) => {
   try {
     const orders = await Order.find({
       $or: [
@@ -150,12 +265,12 @@ router.get("/fix/florist", async (req, res) => {
         : 'All orders have floristId'
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// NEW: Update orders to add floristId from flower data
-router.put("/fix/add-florist-id", async (req, res) => {
+
+router.put("/fix/add-florist-id", async (req, res, next) => {
   try {
     const ordersWithoutFloristId = await Order.find({
       $or: [
@@ -171,7 +286,7 @@ router.put("/fix/add-florist-id", async (req, res) => {
     for (const order of ordersWithoutFloristId) {
       try {
         if (order.items && order.items.length > 0) {
-          // Get the first flower to find floristId
+          
           const firstFlower = await Flower.findById(order.items[0].flowerId);
           if (firstFlower && firstFlower.floristId) {
             order.floristId = firstFlower.floristId;
@@ -192,7 +307,7 @@ router.put("/fix/add-florist-id", async (req, res) => {
       message: `Updated ${updatedCount} orders with floristId`
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
@@ -209,7 +324,7 @@ router.put("/:id/status", async (req, res) => {
   }
 });
 
-// Assign delivery partner to order
+
 router.put("/:id/assign-deliver", async (req, res) => {
   try {
     const order = await Order.findByIdAndUpdate(
@@ -223,7 +338,7 @@ router.put("/:id/assign-deliver", async (req, res) => {
   }
 });
 
-// NEW: Update order floristId
+
 router.put("/:id/florist", async (req, res) => {
   try {
     const order = await Order.findByIdAndUpdate(

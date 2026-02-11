@@ -6,11 +6,11 @@ const orderItemSchema = new mongoose.Schema({
   price: { type: Number, required: true, min: 0 }
 });
 
-// models/Order.js
+
 const orderSchema = new mongoose.Schema({
   userId: { type: String, required: true },
-  floristId: { type: String, required: true }, // Make this required
-  deliverId: { type: String }, // Keep as optional
+  floristId: { type: String, required: true }, 
+  deliverId: { type: String }, 
   status: { 
     type: String, 
     required: true, 

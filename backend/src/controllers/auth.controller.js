@@ -13,16 +13,14 @@ exports.register = async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    // Create user data object
     const userData = {
       name,
       email,
       password: hashed,
-      role: role || "user", // Use provided role or default to "user"
+      role: role || "user",
       city: city || "",
     };
 
-    // Add optional fields if provided
     if (phone) userData.phone = phone;
     if (shopName) userData.shopName = shopName;
 
@@ -78,7 +76,6 @@ exports.login = async (req, res) => {
   }
 };
 
-// Simple reset password by email (no email link)
 exports.resetPassword = async (req, res) => {
   try {
     const { email, newPassword } = req.body;

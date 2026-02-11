@@ -4,7 +4,7 @@ const flowerSchema = new mongoose.Schema({
     name: String,
     price: Number,
     description: String,
-    image_url: String, // Changed from imageUrl to image_url
+    image_url: String, 
     available: Boolean,
 
     categoryId: {
@@ -18,7 +18,7 @@ const flowerSchema = new mongoose.Schema({
 
     city: String
 }, {
-  timestamps: true // Add timestamps
+  timestamps: true 
 })
 
 module.exports = mongoose.model("Flower", flowerSchema)

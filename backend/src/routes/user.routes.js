@@ -1,18 +1,33 @@
 const express = require("express");
 const User = require("../models/User");
 const authMiddleware = require("../middleware/authMiddleware");
+const { applyQueryOptions, buildPaginationMeta } = require("../utils/query");
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.get("/", async (req, res, next) => {
   try {
-    const users = await User.find({ role: "user" }).select("-password");
+    const filter = { role: "user" };
+    const baseQuery = User.find(filter).select("-password");
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+    const users = await query;
+
+    if (pagination) {
+      const total = await User.countDocuments(filter);
+      return res.json({
+        data: users,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
     res.json(users);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
     if (!user) {
@@ -25,12 +40,12 @@ router.get("/:id", async (req, res) => {
     }
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
-// Update current user profile
-router.put("/profile", authMiddleware, async (req, res) => {
+
+router.put("/profile", authMiddleware, async (req, res, next) => {
   try {
     const userId = req.user.id;
     const user = await User.findById(userId);
@@ -59,7 +74,7 @@ router.put("/profile", authMiddleware, async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 

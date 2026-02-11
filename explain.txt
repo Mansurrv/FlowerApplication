@@ -1,0 +1,284 @@
+FlowerApplication – Detailed File Explanations
+=============================================
+
+This document explains all backend `.js` files and Flutter `.dart` files in the project.
+
+BACKEND (Node.js / Express)
+---------------------------
+
+Overall flow:
+- `server.js` loads environment variables, connects to MongoDB, and starts the HTTP server.
+- `app.js` builds the Express app and mounts all route modules under `/api/*`.
+- Each route file defines endpoints and uses Mongoose models to read/write data.
+
+Core infrastructure
+
+1) backend/src/server.js
+- Entry point for the backend.
+- Loads `.env` from `backend/src/.env`.
+- Calls `connectDB()` then starts Express on `PORT` (default 4040).
+
+2) backend/src/app.js
+- Creates the Express app.
+- Adds middleware: CORS and JSON parsing.
+- Registers all route modules:
+  - /api/auth, /api/categories, /api/cities, /api/flowers, /api/orders, /api/users, etc.
+
+3) backend/src/config/db.js
+- Connects Mongoose to MongoDB using `process.env.MONGO_URI`.
+- Logs success or exits on error.
+
+4) backend/src/middleware/authMiddleware.js
+- JWT authentication middleware.
+- Reads `Authorization: Bearer <token>`.
+- Verifies token and attaches decoded payload to `req.user`.
+
+5) backend/src/middleware/requireRole.js
+- Role-based access control.
+- Ensures `req.user.role` matches required role (e.g., admin).
+
+Controllers
+
+6) backend/src/controllers/auth.controller.js
+- register: creates a user with hashed password; returns basic user info.
+- login: verifies password, issues JWT token (7 days).
+- resetPassword: simple email + new password (no email link).
+
+7) backend/src/controllers/city.controller.js
+- getCities: returns all cities sorted by name.
+- addCity: prevents duplicates and inserts a new city.
+
+8) backend/src/controllers/florist.controller.js
+- getProfile: returns florist profile (requires florist role).
+- updateProfile: updates florist fields (shopName, phone, etc.).
+- getStatistics: counts florist’s flowers and orders; returns summary stats.
+- getOrders: returns orders associated with the florist.
+
+Models (Mongoose Schemas)
+
+9) backend/src/models/User.js
+- User profile + auth data.
+- Fields: name, email, password, role, city, phone, shopName, address, description, rating, status.
+
+10) backend/src/models/Flower.js
+- Main product model.
+- Fields: name, price, description, image_url, available, categoryId, floristId, city.
+
+11) backend/src/models/Category.js
+- Simple category list (name only).
+
+12) backend/src/models/City.js
+- City list with unique name.
+
+13) backend/src/models/Order.js
+- Customer order with embedded item list.
+- Includes status and orderNumber generator.
+
+14) backend/src/models/OrderItem.js
+- Standalone order item (orderId + flowerId + quantity + price).
+
+15) backend/src/models/Payment.js
+- Stores payment info per order.
+
+16) backend/src/models/Favorite.js
+- Stores user favorites (userId + flowerId).
+
+17) backend/src/models/Route.js
+- Delivery routing info for an order (start/end points).
+
+18) backend/src/models/Connection.js
+- Tracks user-to-user “connection” relationships.
+- Supports status: pending/accepted/rejected/blocked.
+
+19) backend/src/models/Promotion.js
+- Promotions for the “stories” UI.
+- Fields: title, subtitle, imageUrl, isActive, sortOrder.
+
+Routes
+
+20) backend/src/routes/auth.routes.js
+- POST /register, /login, /reset-password.
+- Uses auth controller.
+
+21) backend/src/routes/admin.routes.js
+- Admin-only user management.
+- GET /users: list (filter by role/status/q).
+- PATCH /users/:id: update user fields.
+- DELETE /users/:id: delete user.
+
+22) backend/src/routes/category.routes.js
+- POST /: create category.
+- GET /: list categories.
+- GET /:id: get one.
+- DELETE /:id: delete.
+
+23) backend/src/routes/city.routes.js
+- GET /: list cities.
+- POST /: add city.
+
+24) backend/src/routes/flower.routes.js
+- POST /: add flower.
+- GET /: list flowers (populates category + florist).
+- GET /search: query search.
+- GET /search/advanced: filter by category/price/availability.
+- GET /popular: newest available.
+- GET /category/:categoryId and /city/:city filters.
+- PUT /:id: update flower.
+- DELETE /:id: delete flower.
+
+25) backend/src/routes/order.routes.js
+- POST /: create order (validates required fields).
+- GET /: list orders (admin/ops).
+- GET /user/:userId: user’s orders.
+- GET /florist/:floristId: florist’s orders.
+- GET /deliver/:deliverId: delivery’s orders.
+- GET /available: orders not assigned to delivery.
+- PUT /:id/status, /:id/assign-deliver, /:id/florist updates.
+- DELETE /:id: remove order.
+
+26) backend/src/routes/orderItem.routes.js
+- POST /: create order item.
+- GET /order/:orderId: list items.
+
+27) backend/src/routes/payment.routes.js
+- POST /: create payment.
+- GET /order/:orderId: list payments.
+
+28) backend/src/routes/route.routes.js
+- POST /: create route.
+- GET /order/:orderId: fetch route.
+
+29) backend/src/routes/favorite.routes.js
+- POST /: add favorite.
+- GET /user/:userId: list favorites.
+- DELETE /:id: remove favorite.
+
+30) backend/src/routes/connection.routes.js
+- Connection system between users.
+- POST /connect: request connection.
+- GET /current/:userId, /history/:userId, /:userId: connection data.
+
+31) backend/src/routes/florist.routes.js
+- Florist endpoints (JWT-protected).
+- GET/PUT profile, GET statistics, GET florist’s flowers/orders.
+
+32) backend/src/routes/promotion.routes.js
+- GET /: list promotions (active only unless `?all=true`).
+- POST /: admin-only create.
+- DELETE /:id: admin-only delete.
+
+33) backend/src/index.html
+- Simple test page to register/login in a browser.
+
+
+FLUTTER APP (Dart)
+------------------
+
+Overall flow:
+- `main.dart` bootstraps auth + routing.
+- `AuthService` holds login state and token.
+- `ApiClient` provides base URL and HTTP calls.
+- Screens call API and render UI based on role: user/florist/deliver/admin.
+
+Core App
+
+1) application/lib/main.dart
+- Entry point. Loads auth state from storage.
+- Routes user to correct dashboard based on role.
+- Shows login/register UI if not logged in.
+
+Models / Providers
+
+2) application/lib/models/basket_item.dart
+- Represents a flower in basket.
+- Contains price/quantity + helper `total`.
+
+3) application/lib/models/order_item.dart
+- Represents Order and OrderItem with JSON serialization.
+
+4) application/lib/provider/basket_provider.dart
+- In-memory basket state with add/remove/update and total price.
+
+Services
+
+5) application/lib/services/api_client.dart
+- Low-level HTTP helper with base URL (`API_BASE_URL` or Render default).
+
+6) application/lib/services/api_service.dart
+- Auth-related API calls: login, register, reset password, update profile.
+
+7) application/lib/services/auth_service.dart
+- Holds auth token, user data, persists to SharedPreferences.
+- Provides login/logout/session state and user fields.
+
+8) application/lib/services/navigation_service.dart
+- Global navigator key helper.
+
+9) application/lib/services/order_service.dart
+- Wrapper to create orders and fetch user/florist orders.
+
+Screens (User)
+
+10) application/lib/screens/home_screen.dart
+- Main user home: promotions, categories, special offers, popular products.
+- Search & filter logic.
+- Integrates promotions from `/api/promotions` with fallback.
+
+11) application/lib/screens/basket_screen.dart
+- Basket UI: list, quantities, subtotal, checkout.
+
+12) application/lib/screens/orders_screen.dart
+- Shows user order history.
+- Cancel order flow using API.
+
+13) application/lib/screens/profile_screen.dart
+- User profile view/edit UI.
+
+14) application/lib/screens/search_screen.dart
+- Separate search widget with filters (color/season/price).
+
+Screens (Admin)
+
+15) application/lib/screens/admin/admin_dashboard.dart
+- Admin bottom navigation (Users/Florists/Deliver/Catalog/Profile).
+
+16) application/lib/screens/admin/admin_user_management_screen.dart
+- Admin list/search/filter users by role.
+- Update status, delete users.
+
+17) application/lib/screens/admin/admin_catalog_screen.dart
+- Admin tabbed UI for Categories, Cities, Promotions.
+- Allows add/list/delete (promotions & categories).
+
+Screens (Florist)
+
+18) application/lib/screens/florist/florist_dashboard.dart
+- Florist bottom navigation (Products/Orders/Profile).
+
+19) application/lib/screens/florist/florist_products_screen.dart
+- Florist CRUD for flowers with category dropdown.
+
+20) application/lib/screens/florist/florist_orders_screen.dart
+- Florist order list with stats and debug output.
+
+21) application/lib/screens/florist/florist_profile_screen.dart
+- Florist profile view/edit and logout.
+
+Screens (Delivery)
+
+22) application/lib/screens/deliver/deliver_dashboard.dart
+- Delivery partner bottom navigation.
+
+23) application/lib/screens/deliver/deliver_orders_screen.dart
+- Shows available orders and assigned orders.
+- Accept order and update status.
+
+Misc / Notes
+
+24) application/lib/helper/navigation_helper.dart
+- Empty placeholder file (no content).
+
+25) application/lib/wdq
+- Unused sample stub (not referenced by the app).
+
+If you want a code-walkthrough of any specific file (line-by-line), tell me the file path.

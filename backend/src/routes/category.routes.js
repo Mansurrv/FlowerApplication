@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const Category = require("../models/Category");
+const { applyQueryOptions, buildPaginationMeta } = require("../utils/query");
 
 router.post("/", async (req, res) => {
   try {
@@ -10,9 +11,25 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
-  const categories = await Category.find();
-  res.json(categories);
+router.get("/", async (req, res, next) => {
+  try {
+    const { query, pagination } = applyQueryOptions(Category.find(), req.query, {
+      defaultSort: "name",
+    });
+    const categories = await query;
+
+    if (pagination) {
+      const total = await Category.countDocuments();
+      return res.json({
+        data: categories,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
+    res.json(categories);
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.get("/:id", async (req, res) => {

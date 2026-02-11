@@ -2,22 +2,33 @@ const router = require("express").Router();
 const Promotion = require("../models/Promotion");
 const authMiddleware = require("../middleware/authMiddleware");
 const requireRole = require("../middleware/requireRole");
+const { applyQueryOptions, buildPaginationMeta } = require("../utils/query");
 
-router.get("/", async (req, res) => {
+router.get("/", async (req, res, next) => {
   try {
     const includeAll = String(req.query.all || "") === "true";
     const filter = includeAll ? {} : { isActive: true };
-    const promotions = await Promotion.find(filter).sort({
-      sortOrder: 1,
-      createdAt: -1,
+    const baseQuery = Promotion.find(filter);
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "sortOrder -createdAt",
     });
+    const promotions = await query;
+
+    if (pagination) {
+      const total = await Promotion.countDocuments(filter);
+      return res.json({
+        data: promotions,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
     res.json(promotions);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
-router.post("/", authMiddleware, requireRole("admin"), async (req, res) => {
+router.post("/", authMiddleware, requireRole("admin"), async (req, res, next) => {
   try {
     const { title, subtitle, imageUrl, isActive, sortOrder } = req.body || {};
 
@@ -39,7 +50,7 @@ router.post("/", authMiddleware, requireRole("admin"), async (req, res) => {
 
     res.status(201).json(promotion);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    next(err);
   }
 });
 
@@ -47,7 +58,7 @@ router.delete(
   "/:id",
   authMiddleware,
   requireRole("admin"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const promotion = await Promotion.findByIdAndDelete(req.params.id);
       if (!promotion) {
@@ -55,7 +66,7 @@ router.delete(
       }
       res.json({ message: "Promotion deleted" });
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      next(err);
     }
   }
 );
