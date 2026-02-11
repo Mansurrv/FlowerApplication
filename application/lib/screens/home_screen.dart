@@ -31,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSearchLoading = false;
   String _searchError = '';
   Timer? _searchDebounce;
+  late Future<List<Map<String, dynamic>>> _promotionsFuture;
   String _filterCategory = 'All';
   double _filterMaxPrice = 100000;
   bool _filterAvailableOnly = false;
@@ -39,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _promotionsFuture = _fetchPromotions();
   }
 
   @override
@@ -124,10 +126,9 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _searchResultsRaw = flowersList.map((flower) {
               if (flower is Map<String, dynamic>) {
-                final floristId =
-                    flower['floristId'] is Map
-                        ? flower['floristId']['_id']?.toString()
-                        : flower['floristId']?.toString();
+                final floristId = flower['floristId'] is Map
+                    ? flower['floristId']['_id']?.toString()
+                    : flower['floristId']?.toString();
                 return {
                   'id': flower['_id']?.toString() ?? '',
                   'name': flower['name']?.toString() ?? 'Flower',
@@ -156,13 +157,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 'name': 'Unknown Flower',
                 'price': 0.0,
                 'image_url': 'assets/placeholder.jpg',
-              'category': 'General',
-              'description': '',
-              'available': true,
-              'floristId': null,
-              'florist': 'Unknown Florist',
-            };
-          }).toList();
+                'category': 'General',
+                'description': '',
+                'available': true,
+                'floristId': null,
+                'florist': 'Unknown Florist',
+              };
+            }).toList();
             _searchResults = _applyFilters(_searchResultsRaw);
             _isSearchLoading = false;
           });
@@ -204,10 +205,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final List<dynamic> data = json.decode(response.body);
         final mapped = data.map((flower) {
           if (flower is Map<String, dynamic>) {
-            final floristId =
-                flower['floristId'] is Map
-                    ? flower['floristId']['_id']?.toString()
-                    : flower['floristId']?.toString();
+            final floristId = flower['floristId'] is Map
+                ? flower['floristId']['_id']?.toString()
+                : flower['floristId']?.toString();
             return {
               'id': flower['_id']?.toString() ?? '',
               'name': flower['name']?.toString() ?? 'Flower',
@@ -215,8 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? (flower['price'] as num).toDouble()
                   : 0.0,
               'image_url':
-                  flower['image_url']?.toString() ??
-                  'assets/placeholder.jpg',
+                  flower['image_url']?.toString() ?? 'assets/placeholder.jpg',
               'category': flower['categoryId'] is Map
                   ? (flower['categoryId']['name']?.toString() ?? 'General')
                   : 'General',
@@ -265,9 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  List<Map<String, dynamic>> _applyFilters(
-    List<Map<String, dynamic>> source,
-  ) {
+  List<Map<String, dynamic>> _applyFilters(List<Map<String, dynamic>> source) {
     return source.where((flower) {
       final matchesCategory =
           _filterCategory == 'All' ||
@@ -290,11 +287,10 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        final names =
-            data
-                .map((c) => c is Map ? c['name']?.toString() ?? '' : '')
-                .where((name) => name.isNotEmpty)
-                .toList();
+        final names = data
+            .map((c) => c is Map ? c['name']?.toString() ?? '' : '')
+            .where((name) => name.isNotEmpty)
+            .toList();
         return ['All', ...names];
       }
     } catch (_) {}
@@ -339,7 +335,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   SizedBox(height: 12),
-                  Text('Category', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    'Category',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   SizedBox(height: 8),
                   FutureBuilder<List<String>>(
                     future: _fetchCategoryNames(),
@@ -509,7 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     margin: EdgeInsets.only(left: 40),
                     child: Text(
-                      'City Name',
+                      'InFloral',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -611,11 +610,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed:
-                          () =>
-                              query.isEmpty
-                                  ? _loadAllFlowersForSearch()
-                                  : _searchFlowers(query),
+                      onPressed: () => query.isEmpty
+                          ? _loadAllFlowersForSearch()
+                          : _searchFlowers(query),
                       child: Text('Retry'),
                     ),
                   ],
@@ -893,121 +890,155 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showPromotionStories(int initialIndex) {
+  Future<List<Map<String, dynamic>>> _fetchPromotions() async {
+    try {
+      final response = await ApiClient.get(
+        '/api/promotions',
+        headers: {'Accept': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List) {
+          return data.map<Map<String, dynamic>>((item) {
+            return {
+              'title': item['title'] ?? '',
+              'subtitle': item['subtitle'] ?? '',
+              'image': item['imageUrl'] ?? '',
+            };
+          }).toList();
+        }
+      }
+      return _defaultPromotions();
+    } catch (_) {
+      return _defaultPromotions();
+    }
+  }
+
+  List<Map<String, dynamic>> _defaultPromotions() {
+    return [
+      {
+        'title': '70% OFF',
+        'subtitle': 'Special Discount',
+        'image': 'images/image.png',
+      },
+      {
+        'title': 'Free Gift',
+        'subtitle': 'With Every Order',
+        'image': 'images/imagecopy.png',
+      },
+      {
+        'title': 'Bestseller',
+        'subtitle': 'Popular Choice',
+        'image': 'images/imagecopy2.png',
+      },
+      {
+        'title': 'New',
+        'subtitle': '',
+        'image': 'images/image.png',
+      },
+    ];
+  }
+
+  void _showPromotionStories(
+    int initialIndex,
+    List<Map<String, dynamic>> stories,
+  ) {
     showDialog(
       context: context,
       barrierColor: Colors.black,
       builder: (context) => _PromotionStoryViewer(
         initialIndex: initialIndex,
-        stories: const [
-          {
-            'title': '70% OFF',
-            'subtitle': 'Special Discount',
-            'image': 'images/image.png',
-          },
-          {
-            'title': 'Free Gift',
-            'subtitle': 'With Every Order',
-            'image': 'images/imagecopy.png',
-          },
-          {
-            'title': 'Bestseller',
-            'subtitle': 'Popular Choice',
-            'image': 'images/imagecopy2.png',
-          },
-        ],
+        stories: stories,
       ),
     );
   }
 
   Widget _buildPromoStories() {
-    final stories = [
-      {'title': '70% OFF', 'image': 'images/image.png'},
-      {
-        'title': 'Free Gift',
-        'image': 'images/imagecopy.png',
-      },
-      {
-        'title': 'Bestseller',
-        'image': 'images/imagecopy2.png',
-      },
-      {
-        'title': 'New',
-        'image': 'images/image.png',
-      },
-    ];
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _promotionsFuture,
+      builder: (context, snapshot) {
+        final stories =
+            snapshot.hasData && snapshot.data!.isNotEmpty
+                ? snapshot.data!
+                : _defaultPromotions();
 
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              'Promotions',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-          SizedBox(
-            height: 110,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: stories.length,
-              separatorBuilder: (_, __) => SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final story = stories[index];
-                return Column(
-                  children: [
-                    InkWell(
-                      onTap: () => _showPromotionStories(index),
-                      borderRadius: BorderRadius.circular(40),
-                      child: Container(
-                        width: 68,
-                        height: 68,
-                        padding: EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black,
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            story['image'] as String,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.black12,
-                                child: Icon(
-                                  Icons.local_offer,
-                                  color: Colors.black,
-                                ),
-                              );
-                            },
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Promotions',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              SizedBox(
+                height: 110,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: stories.length,
+                  separatorBuilder: (_, __) => SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final story = stories[index];
+                    final imageUrl = story['image']?.toString() ?? '';
+                    final title = story['title']?.toString() ?? '';
+
+                    return Column(
+                      children: [
+                        InkWell(
+                          onTap: () => _showPromotionStories(index, stories),
+                          borderRadius: BorderRadius.circular(40),
+                          child: Container(
+                            width: 68,
+                            height: 68,
+                            padding: EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black,
+                            ),
+                            child: ClipOval(
+                              child: Image(
+                                image: _getImageProvider(imageUrl),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.black12,
+                                    child: Icon(
+                                      Icons.local_offer,
+                                      color: Colors.black,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    SizedBox(
-                      width: 72,
-                      child: Text(
-                        story['title'] as String,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                        SizedBox(height: 6),
+                        SizedBox(
+                          width: 72,
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1107,10 +1138,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Map<String, dynamic> _getCategoryStyle(String categoryName) {
-    return {
-      'color': Colors.black,
-      'bgColor': Colors.transparent,
-    };
+    return {'color': Colors.black, 'bgColor': Colors.transparent};
   }
 
   Widget _buildLoadingGrid() {
@@ -1189,7 +1217,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      if (!_isSearching) {
+                        _toggleSearch();
+                      } else {
+                        _searchController.clear();
+                        _loadAllFlowersForSearch();
+                      }
+                    },
                     child: Text(
                       'See all',
                       style: TextStyle(color: Colors.pink),
@@ -1265,10 +1300,9 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((flower) {
-          final floristId =
-              flower['floristId'] is Map
-                  ? flower['floristId']['_id']?.toString()
-                  : flower['floristId']?.toString();
+          final floristId = flower['floristId'] is Map
+              ? flower['floristId']['_id']?.toString()
+              : flower['floristId']?.toString();
           return {
             'id': flower['_id'] ?? '',
             'name': flower['name'] ?? 'Flower',
@@ -1299,10 +1333,9 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((flower) {
-          final floristId =
-              flower['floristId'] is Map
-                  ? flower['floristId']['_id']?.toString()
-                  : flower['floristId']?.toString();
+          final floristId = flower['floristId'] is Map
+              ? flower['floristId']['_id']?.toString()
+              : flower['floristId']?.toString();
           return {
             'id': flower['_id'] ?? '',
             'name': flower['name'] ?? 'Flower',
@@ -1535,7 +1568,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ImageProvider _getImageProvider(String imageUrl) {
     if (imageUrl.startsWith('http')) {
       return NetworkImage(imageUrl);
-    } else if (imageUrl.startsWith('assets/')) {
+    } else if (imageUrl.startsWith('assets/') || imageUrl.startsWith('images/')) {
       return AssetImage(imageUrl);
     } else {
       return AssetImage('assets/placeholder.jpg');
@@ -2035,8 +2068,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+ImageProvider _promotionImageProvider(String imageUrl) {
+  if (imageUrl.startsWith('http')) {
+    return NetworkImage(imageUrl);
+  }
+  if (imageUrl.startsWith('assets/') || imageUrl.startsWith('images/')) {
+    return AssetImage(imageUrl);
+  }
+  return AssetImage('assets/placeholder.jpg');
+}
+
 class _PromotionStoryViewer extends StatefulWidget {
-  final List<Map<String, String>> stories;
+  final List<Map<String, dynamic>> stories;
   final int initialIndex;
 
   const _PromotionStoryViewer({
@@ -2108,11 +2151,14 @@ class _PromotionStoryViewerState extends State<_PromotionStoryViewer> {
           },
           itemBuilder: (context, index) {
             final story = widget.stories[index];
+            final imageUrl = story['image']?.toString() ?? '';
+            final title = story['title']?.toString() ?? '';
+            final subtitle = story['subtitle']?.toString() ?? '';
             return Stack(
               children: [
                 Positioned.fill(
-                  child: Image.asset(
-                    story['image'] ?? '',
+                  child: Image(
+                    image: _promotionImageProvider(imageUrl),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(color: Colors.black);
@@ -2145,7 +2191,7 @@ class _PromotionStoryViewerState extends State<_PromotionStoryViewer> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        story['title'] ?? '',
+                        title,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -2154,11 +2200,8 @@ class _PromotionStoryViewerState extends State<_PromotionStoryViewer> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        story['subtitle'] ?? '',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
+                        subtitle,
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                     ],
                   ),

@@ -296,9 +296,7 @@ class _LoginFormState extends State<LoginForm> {
               ),
               actions: [
                 TextButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () => Navigator.pop(context),
+                  onPressed: isSubmitting ? null : () => Navigator.pop(context),
                   child: Text('Cancel'),
                 ),
                 ElevatedButton(
@@ -383,209 +381,214 @@ class _LoginFormState extends State<LoginForm> {
           key: _formKey,
           child: Column(
             children: [
-            // Email Field
-            _MinimalTextField(
-              controller: _emailController,
-              hintText: 'Email address',
-              icon: Icons.email_outlined,
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Required';
-                if (!value.contains('@')) return 'Invalid email';
-                return null;
-              },
-            ),
-
-            SizedBox(height: 16),
-
-            // Password Field
-            _MinimalTextField(
-              controller: _passwordController,
-              hintText: 'Password',
-              icon: Icons.lock_outline,
-              isPassword: true,
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Required';
-                return null;
-              },
-            ),
-
-            SizedBox(height: 24),
-
-            // Forgot Password
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: _showResetPasswordDialog,
-                style: TextButton.styleFrom(foregroundColor: Colors.pink),
-                child: Text('Forgot password?', style: TextStyle(fontSize: 14)),
+              // Email Field
+              _MinimalTextField(
+                controller: _emailController,
+                hintText: 'Email address',
+                icon: Icons.email_outlined,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Required';
+                  if (!value.contains('@')) return 'Invalid email';
+                  return null;
+                },
               ),
-            ),
 
-            SizedBox(height: 25),
+              SizedBox(height: 16),
 
-            // Error Message
-            if (_error != null)
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
+              // Password Field
+              _MinimalTextField(
+                controller: _passwordController,
+                hintText: 'Password',
+                icon: Icons.lock_outline,
+                isPassword: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Required';
+                  return null;
+                },
+              ),
+
+              SizedBox(height: 24),
+
+              // Forgot Password
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _showResetPasswordDialog,
+                  style: TextButton.styleFrom(foregroundColor: Colors.pink),
+                  child: Text(
+                    'Forgot password?',
+                    style: TextStyle(fontSize: 14),
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline, color: Colors.red, size: 16),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _error!,
-                        style: TextStyle(color: Colors.red, fontSize: 14),
+              ),
+
+              SizedBox(height: 25),
+
+              // Error Message
+              if (_error != null)
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: TextStyle(color: Colors.red, fontSize: 14),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
-            if (_error != null) SizedBox(height: 16),
+              if (_error != null) SizedBox(height: 16),
 
-            // Sign In Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading || widget.authService.isLoading
-                    ? null
-                    : () async {
-                        if (_formKey.currentState!.validate()) {
-                          setState(() {
-                            _isLoading = true;
-                            _error = null;
-                          });
+              // Sign In Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading || widget.authService.isLoading
+                      ? null
+                      : () async {
+                          if (_formKey.currentState!.validate()) {
+                            setState(() {
+                              _isLoading = true;
+                              _error = null;
+                            });
 
-                          final result = await widget.authService.login(
-                            _emailController.text.trim(),
-                            _passwordController.text,
-                          );
+                            final result = await widget.authService.login(
+                              _emailController.text.trim(),
+                              _passwordController.text,
+                            );
 
-                          if (result['success'] == true) {
-                            // Get user data directly from authService
-                            final userType =
-                                widget.authService.userData?['role'] ?? 'user';
-                            final authToken =
-                                widget.authService.authToken ?? ''; // CORRECTED
-                            final userId = widget.authService.userId ?? '';
+                            if (result['success'] == true) {
+                              // Get user data directly from authService
+                              final userType =
+                                  widget.authService.userData?['role'] ??
+                                  'user';
+                              final authToken =
+                                  widget.authService.authToken ??
+                                  ''; // CORRECTED
+                              final userId = widget.authService.userId ?? '';
 
-                            if (kDebugMode) {
-                              print(
-                                'Login successful - Role: $userType, ID: $userId',
-                              );
-                            }
+                              if (kDebugMode) {
+                                print(
+                                  'Login successful - Role: $userType, ID: $userId',
+                                );
+                              }
 
-                            // Navigate based on user type
-                            if (userType == 'admin' &&
-                                authToken.isNotEmpty &&
-                                userId.isNotEmpty) {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AdminDashboard(
-                                    authToken: authToken,
-                                    authService: widget.authService,
+                              // Navigate based on user type
+                              if (userType == 'admin' &&
+                                  authToken.isNotEmpty &&
+                                  userId.isNotEmpty) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => AdminDashboard(
+                                      authToken: authToken,
+                                      authService: widget.authService,
+                                    ),
                                   ),
-                                ),
-                              );
-                            } else if (userType == 'florist' &&
-                                authToken.isNotEmpty &&
-                                userId.isNotEmpty) {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => FloristDashboard(
-                                    authToken: authToken,
-                                    userId: userId,
+                                );
+                              } else if (userType == 'florist' &&
+                                  authToken.isNotEmpty &&
+                                  userId.isNotEmpty) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => FloristDashboard(
+                                      authToken: authToken,
+                                      userId: userId,
+                                    ),
                                   ),
-                                ),
-                              );
-                            } else if (userType == 'deliver' &&
-                                authToken.isNotEmpty &&
-                                userId.isNotEmpty) {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => DeliverDashboard(
-                                    authToken: authToken,
-                                    userId: userId,
-                                    authService: widget.authService,
+                                );
+                              } else if (userType == 'deliver' &&
+                                  authToken.isNotEmpty &&
+                                  userId.isNotEmpty) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => DeliverDashboard(
+                                      authToken: authToken,
+                                      userId: userId,
+                                      authService: widget.authService,
+                                    ),
                                   ),
+                                );
+                              } else {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => HomeScreen(
+                                      authService: widget.authService,
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              // Show welcome message with role
+                              final roleText = userType == 'admin'
+                                  ? 'Admin'
+                                  : userType == 'florist'
+                                  ? 'Florist'
+                                  : userType == 'deliver'
+                                  ? 'Delivery Partner'
+                                  : 'User';
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Welcome back, $roleText!'),
+                                  backgroundColor: Colors.green,
                                 ),
                               );
                             } else {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => HomeScreen(
-                                    authService: widget.authService,
+                              setState(() {
+                                _error = result['error'];
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    result['error'] ?? 'Login failed',
                                   ),
+                                  backgroundColor: Colors.red,
                                 ),
                               );
                             }
 
-                            // Show welcome message with role
-                            final roleText = userType == 'admin'
-                                ? 'Admin'
-                                : userType == 'florist'
-                                    ? 'Florist'
-                                    : userType == 'deliver'
-                                        ? 'Delivery Partner'
-                                        : 'User';
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Welcome back, $roleText!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          } else {
-                            setState(() {
-                              _error = result['error'];
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  result['error'] ?? 'Login failed',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                            setState(() => _isLoading = false);
                           }
-
-                          setState(() => _isLoading = false);
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.pink,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.pink,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
+                  child: _isLoading || widget.authService.isLoading
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          'SIGN IN',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
-                child: _isLoading || widget.authService.isLoading
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(Colors.white),
-                        ),
-                      )
-                    : Text(
-                        'SIGN IN',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
               ),
-            ),
             ],
           ),
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:application/screens/admin/admin_user_management_screen.dart';
+import 'package:application/screens/admin/admin_catalog_screen.dart';
 import 'package:application/screens/profile_screen.dart';
 import 'package:application/services/auth_service.dart';
 
@@ -40,6 +41,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         role: 'deliver',
         title: 'Delivery Partners',
       ),
+      AdminCatalogScreen(authToken: widget.authToken),
       ProfileScreen(authService: widget.authService),
     ];
   }
@@ -64,6 +66,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.people), label: ''),
           BottomNavigationBarItem(icon: Icon(Icons.local_florist), label: ''),
           BottomNavigationBarItem(icon: Icon(Icons.local_shipping), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.category), label: ''),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
         ],
       ),

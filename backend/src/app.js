@@ -11,6 +11,7 @@ const orderItemRoutes = require("./routes/orderItem.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const routeRoutes = require("./routes/route.routes");
 const cityRoutes = require("./routes/city.routes");
+const promotionRoutes = require("./routes/promotion.routes");
 const connectionRoutes = require("./routes/connection.routes")
 const floristRoutes = require('./routes/florist.routes');
 const adminRoutes = require("./routes/admin.routes");
@@ -25,6 +26,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/cities", cityRoutes);
+app.use("/api/promotions", promotionRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/flowers", flowerRoutes);
