@@ -76,6 +76,29 @@ body {
     border: 1px solid #eee;
     background: white;
     font-size: 13px;
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 10px;
+    align-items: center;
+}
+
+.shared-wishlist-item img {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid #eee;
+    background: #f5f7fa;
+}
+
+.shared-wishlist-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.shared-wishlist-meta-row {
+    font-size: 12px;
+    color: #666;
 }
 
 /* Search */

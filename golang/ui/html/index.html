@@ -79,11 +79,41 @@
             payload.items.forEach((item) => {
                 const row = document.createElement("div");
                 row.className = "shared-wishlist-item";
-                const title = item.name || "Flower";
+
+                const img = document.createElement("img");
+                const rawImage = (item.imageUrl || "").toString();
+                const safeImage =
+                    rawImage.startsWith("http") || rawImage.startsWith("/")
+                        ? rawImage
+                        : "/static/images/splash.png";
+                img.src = safeImage;
+                img.alt = item.name || "Flower";
+                img.onerror = function () {
+                    img.src = "/static/images/splash.png";
+                };
+
+                const info = document.createElement("div");
+                info.className = "shared-wishlist-info";
+
+                const title = document.createElement("div");
+                title.className = "shared-wishlist-title";
+                title.textContent = item.name || "Flower";
+
                 const qty = item.quantity || 1;
                 const price = item.price != null ? `₸ ${item.price}` : "";
-                const florist = item.floristName ? ` • ${item.floristName}` : "";
-                row.textContent = `${title} x${qty}${price ? " • " + price : ""}${florist}`;
+                const florist = item.floristName ? item.floristName : "";
+
+                const metaRow = document.createElement("div");
+                metaRow.className = "shared-wishlist-meta-row";
+                metaRow.textContent =
+                    `Qty: ${qty}` +
+                    (price ? ` • ${price}` : "") +
+                    (florist ? ` • ${florist}` : "");
+
+                info.appendChild(title);
+                info.appendChild(metaRow);
+                row.appendChild(img);
+                row.appendChild(info);
                 itemsEl.appendChild(row);
             });
 
