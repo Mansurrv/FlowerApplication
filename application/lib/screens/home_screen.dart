@@ -933,11 +933,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'subtitle': 'Popular Choice',
         'image': 'images/imagecopy2.png',
       },
-      {
-        'title': 'New',
-        'subtitle': '',
-        'image': 'images/image.png',
-      },
+      {'title': 'New', 'subtitle': '', 'image': 'images/image.png'},
     ];
   }
 
@@ -948,10 +944,8 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       barrierColor: Colors.black,
-      builder: (context) => _PromotionStoryViewer(
-        initialIndex: initialIndex,
-        stories: stories,
-      ),
+      builder: (context) =>
+          _PromotionStoryViewer(initialIndex: initialIndex, stories: stories),
     );
   }
 
@@ -959,10 +953,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _promotionsFuture,
       builder: (context, snapshot) {
-        final stories =
-            snapshot.hasData && snapshot.data!.isNotEmpty
-                ? snapshot.data!
-                : _defaultPromotions();
+        final stories = snapshot.hasData && snapshot.data!.isNotEmpty
+            ? snapshot.data!
+            : _defaultPromotions();
 
         return Container(
           margin: EdgeInsets.symmetric(horizontal: 16),
@@ -1300,12 +1293,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (response.statusCode == 200) {
         final dynamic decoded = json.decode(response.body);
-        final List<dynamic> data = decoded is Map<String, dynamic> &&
-                decoded['data'] is List
+        final List<dynamic> data =
+            decoded is Map<String, dynamic> && decoded['data'] is List
             ? decoded['data'] as List<dynamic>
             : decoded is List
-                ? decoded
-                : [];
+            ? decoded
+            : [];
         final mapped = data.map((flower) {
           final floristId = flower['floristId'] is Map
               ? flower['floristId']['_id']?.toString()
@@ -1342,12 +1335,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (response.statusCode == 200) {
         final dynamic decoded = json.decode(response.body);
-        final List<dynamic> data = decoded is Map<String, dynamic> &&
-                decoded['data'] is List
+        final List<dynamic> data =
+            decoded is Map<String, dynamic> && decoded['data'] is List
             ? decoded['data'] as List<dynamic>
             : decoded is List
-                ? decoded
-                : [];
+            ? decoded
+            : [];
         return data.map((flower) {
           final floristId = flower['floristId'] is Map
               ? flower['floristId']['_id']?.toString()
@@ -1584,7 +1577,8 @@ class _HomeScreenState extends State<HomeScreen> {
   ImageProvider _getImageProvider(String imageUrl) {
     if (imageUrl.startsWith('http')) {
       return NetworkImage(imageUrl);
-    } else if (imageUrl.startsWith('assets/') || imageUrl.startsWith('images/')) {
+    } else if (imageUrl.startsWith('assets/') ||
+        imageUrl.startsWith('images/')) {
       return AssetImage(imageUrl);
     } else {
       return AssetImage('assets/placeholder.jpg');
@@ -1937,8 +1931,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final basketProvider = Provider.of<BasketProvider>(context);
     final basketItemCount = basketProvider.itemCount;
 
+    final safeIndex = _currentIndex < 0 || _currentIndex > 4
+        ? 0
+        : _currentIndex;
+
     return BottomNavigationBar(
-      currentIndex: _currentIndex,
+      currentIndex: safeIndex,
       type: BottomNavigationBarType.fixed,
       selectedItemColor: Colors.pink,
       unselectedItemColor: Colors.grey,
@@ -1948,7 +1946,7 @@ class _HomeScreenState extends State<HomeScreen> {
         BottomNavigationBarItem(
           icon: Icon(
             Icons.home,
-            color: _currentIndex == 0 ? Colors.pink : Colors.grey,
+            color: safeIndex == 0 ? Colors.pink : Colors.grey,
           ),
           label: '',
         ),
@@ -1957,7 +1955,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'images/searchIcon.png',
             width: 24,
             height: 24,
-            color: _currentIndex == 1 ? Colors.pink : Colors.grey,
+            color: safeIndex == 1 ? Colors.pink : Colors.grey,
           ),
           label: '',
         ),
@@ -1968,7 +1966,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'images/basketsIcon.png',
                 width: 24,
                 height: 24,
-                color: _currentIndex == 2 ? Colors.pink : Colors.grey,
+                color: safeIndex == 2 ? Colors.pink : Colors.grey,
               ),
               if (basketItemCount > 0)
                 Positioned(
@@ -1999,7 +1997,7 @@ class _HomeScreenState extends State<HomeScreen> {
         BottomNavigationBarItem(
           icon: Icon(
             Icons.receipt_long,
-            color: _currentIndex == 3 ? Colors.pink : Colors.grey,
+            color: safeIndex == 3 ? Colors.pink : Colors.grey,
           ),
           label: '',
         ),
@@ -2008,7 +2006,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'images/profileIcon.png',
             width: 24,
             height: 24,
-            color: _currentIndex == 4 ? Colors.pink : Colors.grey,
+            color: safeIndex == 4 ? Colors.pink : Colors.grey,
           ),
           label: '',
         ),

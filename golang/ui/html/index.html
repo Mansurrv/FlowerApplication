@@ -3,17 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <title>Users Page</title>
-    <link rel="stylesheet" href="/golang/ui/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
     <!-- Splash -->
     <div class="splash" id="splash">
-        <img src="/golang/ui/static/images/splash.png" alt="Splash Image">
+        <img src="/static/images/splash.png" alt="Splash Image">
     </div>
 
     <!-- Main Content -->
     <div class="content" id="content">
+
+        <!-- Shared Wishlist View -->
+        <div class="shared-wishlist" id="sharedWishlist" style="display: none;">
+            <div class="shared-wishlist-header">Shared Wishlist</div>
+            <div class="shared-wishlist-meta" id="sharedWishlistMeta"></div>
+            <div class="shared-wishlist-items" id="sharedWishlistItems"></div>
+        </div>
 
         <!-- Search -->
         <input type="text" placeholder="Search users..." class="search" id="searchInput">
@@ -41,6 +48,68 @@
 
         let users = [];
         let selectedUserId = null;
+
+        function decodeBase64Url(input) {
+            let str = input.replace(/-/g, "+").replace(/_/g, "/");
+            while (str.length % 4) {
+                str += "=";
+            }
+            try {
+                return atob(str);
+            } catch (e) {
+                return "";
+            }
+        }
+
+        function renderSharedWishlist(payload) {
+            const section = document.getElementById("sharedWishlist");
+            const meta = document.getElementById("sharedWishlistMeta");
+            const itemsEl = document.getElementById("sharedWishlistItems");
+            if (!payload || !Array.isArray(payload.items)) {
+                return;
+            }
+
+            const name = payload.from || "Someone";
+            const total = payload.total != null ? payload.total : "";
+            const createdAt = payload.createdAt ? new Date(payload.createdAt).toLocaleString() : "";
+
+            meta.textContent = `${name}'s wishlist${createdAt ? " • " + createdAt : ""}${total !== "" ? " • Total: ₸ " + total : ""}`;
+
+            itemsEl.innerHTML = "";
+            payload.items.forEach((item) => {
+                const row = document.createElement("div");
+                row.className = "shared-wishlist-item";
+                const title = item.name || "Flower";
+                const qty = item.quantity || 1;
+                const price = item.price != null ? `₸ ${item.price}` : "";
+                const florist = item.floristName ? ` • ${item.floristName}` : "";
+                row.textContent = `${title} x${qty}${price ? " • " + price : ""}${florist}`;
+                itemsEl.appendChild(row);
+            });
+
+            section.style.display = "flex";
+
+            const search = document.getElementById("searchInput");
+            const usersContainer = document.getElementById("usersContainer");
+            const wishlistForm = document.querySelector(".wishlist");
+            if (search) search.style.display = "none";
+            if (usersContainer) usersContainer.style.display = "none";
+            if (wishlistForm) wishlistForm.style.display = "none";
+        }
+
+        function tryLoadSharedWishlist() {
+            const params = new URLSearchParams(window.location.search);
+            const encoded = params.get("items");
+            if (!encoded) return;
+            const decoded = decodeBase64Url(encoded);
+            if (!decoded) return;
+            try {
+                const payload = JSON.parse(decoded);
+                renderSharedWishlist(payload);
+            } catch (e) {
+                // ignore malformed payload
+            }
+        }
 
         function renderUsers(list) {
             const container = document.getElementById("usersContainer");
@@ -93,9 +162,21 @@
             });
         }
 
+        const API_PORT = "4040";
+        const API_HOST = window.location.hostname || "localhost";
+        const isFileProtocol = window.location.protocol === "file:";
+        const isDevPort =
+            window.location.port &&
+            window.location.port !== "" &&
+            window.location.port !== API_PORT;
+        const API_BASE =
+            isFileProtocol || isDevPort
+                ? `http://${API_HOST}:${API_PORT}`
+                : window.location.origin;
+
         async function loadUsers() {
             try {
-                const res = await fetch("/api/users");
+                const res = await fetch(`${API_BASE}/api/users/?role=user`);
                 const data = await res.json();
                 users = Array.isArray(data) ? data : (data.data || []);
                 renderUsers(users);
@@ -105,18 +186,24 @@
             }
         }
 
-        function filterUsers(term) {
-            const q = term.trim().toLowerCase();
+        async function searchUsers(term) {
+            const q = term.trim();
             if (!q) {
-                renderUsers(users);
+                loadUsers();
                 return;
             }
-            const filtered = users.filter((user) => {
-                const name = (user.name || "").toLowerCase();
-                const email = (user.email || "").toLowerCase();
-                return name.includes(q) || email.includes(q);
-            });
-            renderUsers(filtered);
+            try {
+                const res = await fetch(
+                    `${API_BASE}/api/users/?role=user&q=${encodeURIComponent(q)}`
+                );
+                const data = await res.json();
+                const list = Array.isArray(data) ? data : (data.data || []);
+                users = list;
+                renderUsers(list);
+                populateNameList(list);
+            } catch (e) {
+                renderUsers([]);
+            }
         }
 
         function findUserIdByName(name) {
@@ -144,7 +231,7 @@
                 return;
             }
 
-            const res = await fetch("/api/notifications", {
+            const res = await fetch(`${API_BASE}/api/notifications/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -166,10 +253,18 @@
         }
 
         document.getElementById("sendWishlistBtn").addEventListener("click", sendWishlist);
+        let searchTimer = null;
         document.getElementById("searchInput").addEventListener("input", (e) => {
-            filterUsers(e.target.value);
+            if (searchTimer) {
+                clearTimeout(searchTimer);
+            }
+            const value = e.target.value;
+            searchTimer = setTimeout(() => {
+                searchUsers(value);
+            }, 300);
         });
 
+        tryLoadSharedWishlist();
         loadUsers();
     </script>
 

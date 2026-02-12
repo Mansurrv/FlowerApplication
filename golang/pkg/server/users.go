@@ -18,7 +18,24 @@ func (a *App) handleListUsers(c *gin.Context) {
 	ctx, cancel := withTimeout(c.Request.Context())
 	defer cancel()
 
-	filter := bson.M{"role": "user"}
+	filter := bson.M{}
+	q := strings.TrimSpace(c.Query("q"))
+	email := strings.TrimSpace(c.Query("email"))
+	role := strings.TrimSpace(c.Query("role"))
+	if role != "" {
+		filter["role"] = role
+	} else if q == "" && email == "" {
+		filter["role"] = "user"
+	}
+
+	if q != "" {
+		filter["$or"] = []bson.M{
+			{"name": bson.M{"$regex": q, "$options": "i"}},
+			{"email": bson.M{"$regex": q, "$options": "i"}},
+		}
+	} else if email != "" {
+		filter["email"] = bson.M{"$regex": email, "$options": "i"}
+	}
 	findOptions := utils.BuildFindOptions(c, "-createdAt")
 	if c.Query("fields") == "" {
 		findOptions.SetProjection(bson.M{"password": 0})

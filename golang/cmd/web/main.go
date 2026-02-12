@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -137,6 +138,15 @@ func main() {
 	app := server.NewApp(store, []byte(jwtSecret), env)
 
 	router := app.Router()
+	uiStatic := filepath.Join(root, "ui", "static")
+	uiIndex := filepath.Join(root, "ui", "html", "index.html")
+	router.Static("/static", uiStatic)
+	router.GET("/wishlist", func(c *gin.Context) {
+		c.File(uiIndex)
+	})
+	router.GET("/wishlist/", func(c *gin.Context) {
+		c.File(uiIndex)
+	})
 	log.Printf("Using MongoDB database: %s", dbName)
 	log.Printf("Server running on port %s", port)
 	if err := router.Run(":" + port); err != nil {

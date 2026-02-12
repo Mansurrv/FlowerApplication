@@ -43,6 +43,41 @@ body {
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
+/* Shared wishlist */
+.shared-wishlist {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background: #f9fafb;
+}
+
+.shared-wishlist-header {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.shared-wishlist-meta {
+    font-size: 12px;
+    color: #666;
+}
+
+.shared-wishlist-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.shared-wishlist-item {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #eee;
+    background: white;
+    font-size: 13px;
+}
+
 /* Search */
 .search {
     padding: 12px;

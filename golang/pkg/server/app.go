@@ -123,4 +123,5 @@ func (a *App) registerRoutes(rg *gin.RouterGroup) {
 	notifications := rg.Group("/notifications")
 	notifications.POST("/", a.handleCreateNotification)
 	notifications.GET("/", a.handleGetMyNotifications)
+	notifications.DELETE("/:id", a.handleDeleteNotification)
 }
