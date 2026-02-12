@@ -1294,7 +1294,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<List<Map<String, dynamic>>> _fetchPopularFlowers() async {
     try {
       final response = await ApiClient.get(
-        '/api/flowers?limit=5&page=1&sort=-createdAt&available=true',
+        '/api/flowers?sort=-createdAt&available=true',
         headers: {'Accept': 'application/json'},
       );
 
@@ -1306,7 +1306,7 @@ class _HomeScreenState extends State<HomeScreen> {
             : decoded is List
                 ? decoded
                 : [];
-        return data.map((flower) {
+        final mapped = data.map((flower) {
           final floristId = flower['floristId'] is Map
               ? flower['floristId']['_id']?.toString()
               : flower['floristId']?.toString();
@@ -1322,6 +1322,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'florist': flower['floristId']?['shopName'] ?? 'Unknown Florist',
           };
         }).toList();
+        return mapped.take(5).toList();
       } else {
         final all = await _fetchAllFlowers();
         return all.take(5).toList();

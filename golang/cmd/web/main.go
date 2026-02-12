@@ -1,7 +1,7 @@
 package main
 
 import (
-	"FlowerApplication/server"
+	"FlowerApplication/pkg/server"
 	"context"
 	"log"
 	"os"
@@ -64,12 +64,29 @@ func connectMongo(uri string) (*mongo.Client, error) {
 	return client, nil
 }
 
+func findProjectRoot(start string) string {
+	dir := start
+	for i := 0; i < 5; i++ {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return start
+}
+
 func main() {
 	cwd, _ := os.Getwd()
-	loadEnvFile(filepath.Join(cwd, ".env"))
-	loadEnvFile(filepath.Join(cwd, "backend", ".env"))
-	loadEnvFile(filepath.Join(cwd, "..", "backend", ".env"))
-	loadEnvFile(filepath.Join(cwd, "..", ".env"))
+	root := findProjectRoot(cwd)
+	parent := filepath.Dir(root)
+	loadEnvFile(filepath.Join(root, ".env"))
+	loadEnvFile(filepath.Join(root, "backend", ".env"))
+	loadEnvFile(filepath.Join(parent, ".env"))
+	loadEnvFile(filepath.Join(parent, "backend", ".env"))
 
 	mongoURI := strings.TrimSpace(os.Getenv("MONGO_URI"))
 	if mongoURI == "" {

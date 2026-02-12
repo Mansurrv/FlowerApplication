@@ -97,10 +97,6 @@ func (a *App) registerRoutes(rg *gin.RouterGroup) {
 	orderItems.POST("/", a.handleCreateOrderItem)
 	orderItems.GET("/order/:orderId", a.handleOrderItemsByOrder)
 
-	payments := rg.Group("/payments")
-	payments.POST("/", a.handleCreatePayment)
-	payments.GET("/order/:orderId", a.handlePaymentsByOrder)
-
 	routes := rg.Group("/routes")
 	routes.POST("/", a.handleCreateRoute)
 	routes.GET("/order/:orderId", a.handleRouteByOrder)
@@ -109,12 +105,6 @@ func (a *App) registerRoutes(rg *gin.RouterGroup) {
 	promotions.GET("/", a.handleListPromotions)
 	promotions.POST("/", a.authMiddleware(), a.requireRole("admin"), a.handleCreatePromotion)
 	promotions.DELETE("/:id", a.authMiddleware(), a.requireRole("admin"), a.handleDeletePromotion)
-
-	connections := rg.Group("/connection")
-	connections.POST("/connect", a.handleConnectUser)
-	connections.GET("/current/:userId", a.handleCurrentConnection)
-	connections.GET("/history/:userId", a.handleConnectionHistory)
-	connections.GET("/:userId", a.handleConnectionList)
 
 	florists := rg.Group("/florists")
 	florists.Use(a.authMiddleware())
@@ -129,4 +119,8 @@ func (a *App) registerRoutes(rg *gin.RouterGroup) {
 	admin.GET("/users", a.handleAdminListUsers)
 	admin.PATCH("/users/:id", a.handleAdminUpdateUser)
 	admin.DELETE("/users/:id", a.handleAdminDeleteUser)
+
+	notifications := rg.Group("/notifications")
+	notifications.POST("/", a.handleCreateNotification)
+	notifications.GET("/", a.handleGetMyNotifications)
 }

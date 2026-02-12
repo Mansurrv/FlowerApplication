@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"FlowerApplication/server/models"
+	"FlowerApplication/pkg/server/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

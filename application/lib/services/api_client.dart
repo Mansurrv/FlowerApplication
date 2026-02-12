@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   static const String primaryBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://flowerapplication.onrender.com',
+    defaultValue: 'http://localhost:4040',
   );
   static const Duration defaultRequestTimeout = Duration(seconds: 30);
 
@@ -91,10 +91,7 @@ class ApiClient {
     if (queryParameters == null || queryParameters.isEmpty) {
       return uri;
     }
-    final merged = <String, String>{
-      ...uri.queryParameters,
-      ...queryParameters,
-    };
+    final merged = <String, String>{...uri.queryParameters, ...queryParameters};
     return uri.replace(queryParameters: merged);
   }
 

@@ -3,8 +3,8 @@ package server
 import (
 	"net/http"
 
-	"FlowerApplication/server/models"
-	"FlowerApplication/server/utils"
+	"FlowerApplication/pkg/server/models"
+	"FlowerApplication/pkg/server/utils"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -39,7 +39,7 @@ func (a *App) handleListCategories(c *gin.Context) {
 	ctx, cancel := withTimeout(c.Request.Context())
 	defer cancel()
 
-	findOptions, pagination := utils.BuildFindOptions(c, "name")
+	findOptions := utils.BuildFindOptions(c, "name")
 	cursor, err := a.Store.Categories.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -50,19 +50,6 @@ func (a *App) handleListCategories(c *gin.Context) {
 	var categories []models.Category
 	if err := cursor.All(ctx, &categories); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-
-	if pagination != nil {
-		total, err := a.Store.Categories.CountDocuments(ctx, bson.M{})
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"data":       categories,
-			"pagination": utils.BuildPaginationMeta(total, pagination.Page, pagination.Limit),
-		})
 		return
 	}
 

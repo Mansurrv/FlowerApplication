@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"FlowerApplication/server/models"
-	"FlowerApplication/server/utils"
+	"FlowerApplication/pkg/server/models"
+	"FlowerApplication/pkg/server/utils"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -23,7 +23,7 @@ func (a *App) handleListPromotions(c *gin.Context) {
 		filter["isActive"] = true
 	}
 
-	findOptions, pagination := utils.BuildFindOptions(c, "sortOrder -createdAt")
+	findOptions := utils.BuildFindOptions(c, "sortOrder -createdAt")
 	cursor, err := a.Store.Promotions.Find(ctx, filter, findOptions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -34,19 +34,6 @@ func (a *App) handleListPromotions(c *gin.Context) {
 	var promotions []models.Promotion
 	if err := cursor.All(ctx, &promotions); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-
-	if pagination != nil {
-		total, err := a.Store.Promotions.CountDocuments(ctx, filter)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"data":       promotions,
-			"pagination": utils.BuildPaginationMeta(total, pagination.Page, pagination.Limit),
-		})
 		return
 	}
 

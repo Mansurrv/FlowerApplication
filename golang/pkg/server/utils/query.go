@@ -1,31 +1,12 @@
 package utils
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-const (
-	DefaultLimit = int64(20)
-	MaxLimit     = int64(100)
-)
-
-type Pagination struct {
-	Page  int64
-	Limit int64
-}
-
-func parseNumber(value string, fallback int64) int64 {
-	parsed, err := strconv.ParseInt(value, 10, 64)
-	if err != nil {
-		return fallback
-	}
-	return parsed
-}
 
 func parseSort(sort string, defaultSort string) bson.D {
 	value := strings.TrimSpace(sort)
@@ -87,28 +68,7 @@ func parseFields(fields string) bson.M {
 	return projection
 }
 
-func ParsePagination(c *gin.Context, defaultLimit int64, maxLimit int64) (bool, *Pagination, int64) {
-	pageRaw := c.Query("page")
-	limitRaw := c.Query("limit")
-	if pageRaw == "" && limitRaw == "" {
-		return false, nil, 0
-	}
-	page := parseNumber(pageRaw, 1)
-	if page < 1 {
-		page = 1
-	}
-	limit := parseNumber(limitRaw, defaultLimit)
-	if limit < 1 {
-		limit = defaultLimit
-	}
-	if limit > maxLimit {
-		limit = maxLimit
-	}
-	skip := (page - 1) * limit
-	return true, &Pagination{Page: page, Limit: limit}, skip
-}
-
-func BuildFindOptions(c *gin.Context, defaultSort string) (*options.FindOptions, *Pagination) {
+func BuildFindOptions(c *gin.Context, defaultSort string) *options.FindOptions {
 	findOptions := options.Find()
 
 	sort := parseSort(c.Query("sort"), defaultSort)
@@ -121,25 +81,5 @@ func BuildFindOptions(c *gin.Context, defaultSort string) (*options.FindOptions,
 		findOptions.SetProjection(projection)
 	}
 
-	paginate, pagination, skip := ParsePagination(c, DefaultLimit, MaxLimit)
-	if paginate && pagination != nil {
-		findOptions.SetSkip(skip)
-		findOptions.SetLimit(pagination.Limit)
-		return findOptions, pagination
-	}
-
-	return findOptions, nil
-}
-
-func BuildPaginationMeta(total int64, page int64, limit int64) bson.M {
-	pages := int64(0)
-	if limit > 0 {
-		pages = (total + limit - 1) / limit
-	}
-	return bson.M{
-		"total": total,
-		"page":  page,
-		"limit": limit,
-		"pages": pages,
-	}
+	return findOptions
 }

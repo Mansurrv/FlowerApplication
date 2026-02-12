@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"FlowerApplication/server/models"
+	"FlowerApplication/pkg/server/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

@@ -95,17 +95,6 @@ type OrderItem struct {
 	UpdatedAt time.Time          `bson:"updatedAt,omitempty" json:"updatedAt,omitempty"`
 }
 
-type Payment struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
-	OrderID   primitive.ObjectID `bson:"orderId,omitempty" json:"orderId,omitempty"`
-	Amount    float64            `bson:"amount,omitempty" json:"amount,omitempty"`
-	Method    string             `bson:"method,omitempty" json:"method,omitempty"`
-	Status    string             `bson:"status,omitempty" json:"status,omitempty"`
-	PaidAt    *time.Time         `bson:"paidAt,omitempty" json:"paidAt,omitempty"`
-	CreatedAt time.Time          `bson:"createdAt,omitempty" json:"createdAt,omitempty"`
-	UpdatedAt time.Time          `bson:"updatedAt,omitempty" json:"updatedAt,omitempty"`
-}
-
 type Favorite struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
 	UserID    primitive.ObjectID `bson:"userId,omitempty" json:"userId,omitempty"`
@@ -134,21 +123,10 @@ type Promotion struct {
 	UpdatedAt time.Time          `bson:"updatedAt,omitempty" json:"updatedAt,omitempty"`
 }
 
-type ConnectionHistory struct {
-	UserID         primitive.ObjectID `bson:"userId,omitempty" json:"userId,omitempty"`
-	ConnectedAt    *time.Time         `bson:"connectedAt,omitempty" json:"connectedAt,omitempty"`
-	DisconnectedAt *time.Time         `bson:"disconnectedAt,omitempty" json:"disconnectedAt,omitempty"`
-	Reason         string             `bson:"reason,omitempty" json:"reason,omitempty"`
-}
-
-type Connection struct {
-	ID                   primitive.ObjectID  `bson:"_id,omitempty" json:"_id,omitempty"`
-	UserID               primitive.ObjectID  `bson:"userId,omitempty" json:"userId,omitempty"`
-	ConnectedUserID      primitive.ObjectID  `bson:"connectedUserId,omitempty" json:"connectedUserId,omitempty"`
-	Status               string              `bson:"status,omitempty" json:"status,omitempty"`
-	PreviousConnections  []ConnectionHistory `bson:"previousConnections,omitempty" json:"previousConnections,omitempty"`
-	NotificationsEnabled bool                `bson:"notificationsEnabled,omitempty" json:"notificationsEnabled,omitempty"`
-	LastActivity         time.Time           `bson:"lastActivity,omitempty" json:"lastActivity,omitempty"`
-	CreatedAt            time.Time           `bson:"createdAt,omitempty" json:"createdAt,omitempty"`
-	UpdatedAt            time.Time           `bson:"updatedAt,omitempty" json:"updatedAt,omitempty"`
+type Notification struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	FromUser  primitive.ObjectID `bson:"from_user" json:"from_user"`
+	ToUser    primitive.ObjectID `bson:"to_user" json:"to_user"`
+	Message   string             `bson:"message" json:"message"`
+	CreatedAt int64              `bson:"created_at" json:"created_at"`
 }

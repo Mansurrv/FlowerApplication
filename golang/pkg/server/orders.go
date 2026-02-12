@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"FlowerApplication/server/models"
-	"FlowerApplication/server/utils"
+	"FlowerApplication/pkg/server/models"
+	"FlowerApplication/pkg/server/utils"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,9 +22,27 @@ func (a *App) handleCreateOrder(c *gin.Context) {
 		return
 	}
 
-	if order.UserID == "" || order.TotalPrice == 0 || order.City == "" || len(order.Items) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields"})
+	if strings.TrimSpace(order.UserID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "userId is required"})
 		return
+	}
+	if len(order.Items) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "items are required"})
+		return
+	}
+	if strings.TrimSpace(order.City) == "" {
+		order.City = "Unknown"
+	}
+	if order.TotalPrice <= 0 {
+		total := 0.0
+		for _, item := range order.Items {
+			if item.Quantity > 0 && item.Price > 0 {
+				total += float64(item.Quantity) * item.Price
+			}
+		}
+		if total > 0 {
+			order.TotalPrice = total
+		}
 	}
 
 	ctx, cancel := withTimeout(c.Request.Context())
@@ -82,7 +100,7 @@ func (a *App) handleListOrders(c *gin.Context) {
 		filter["deliverId"] = deliverId
 	}
 
-	findOptions, pagination := utils.BuildFindOptions(c, "-createdAt")
+	findOptions := utils.BuildFindOptions(c, "-createdAt")
 	cursor, err := a.Store.Orders.Find(ctx, filter, findOptions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -102,19 +120,6 @@ func (a *App) handleListOrders(c *gin.Context) {
 		return
 	}
 
-	if pagination != nil {
-		total, err := a.Store.Orders.CountDocuments(ctx, filter)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"data":       populated,
-			"pagination": utils.BuildPaginationMeta(total, pagination.Page, pagination.Limit),
-		})
-		return
-	}
-
 	c.JSON(http.StatusOK, populated)
 }
 
@@ -124,7 +129,7 @@ func (a *App) handleOrdersByUser(c *gin.Context) {
 	defer cancel()
 
 	filter := bson.M{"userId": userId}
-	findOptions, pagination := utils.BuildFindOptions(c, "-createdAt")
+	findOptions := utils.BuildFindOptions(c, "-createdAt")
 	cursor, err := a.Store.Orders.Find(ctx, filter, findOptions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -144,19 +149,6 @@ func (a *App) handleOrdersByUser(c *gin.Context) {
 		return
 	}
 
-	if pagination != nil {
-		total, err := a.Store.Orders.CountDocuments(ctx, filter)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"data":       populated,
-			"pagination": utils.BuildPaginationMeta(total, pagination.Page, pagination.Limit),
-		})
-		return
-	}
-
 	c.JSON(http.StatusOK, populated)
 }
 
@@ -166,7 +158,7 @@ func (a *App) handleOrdersByFlorist(c *gin.Context) {
 	defer cancel()
 
 	filter := bson.M{"floristId": floristId}
-	findOptions, pagination := utils.BuildFindOptions(c, "-createdAt")
+	findOptions := utils.BuildFindOptions(c, "-createdAt")
 	cursor, err := a.Store.Orders.Find(ctx, filter, findOptions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -186,19 +178,6 @@ func (a *App) handleOrdersByFlorist(c *gin.Context) {
 		return
 	}
 
-	if pagination != nil {
-		total, err := a.Store.Orders.CountDocuments(ctx, filter)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"data":       populated,
-			"pagination": utils.BuildPaginationMeta(total, pagination.Page, pagination.Limit),
-		})
-		return
-	}
-
 	c.JSON(http.StatusOK, populated)
 }
 
@@ -208,7 +187,7 @@ func (a *App) handleOrdersByDeliver(c *gin.Context) {
 	defer cancel()
 
 	filter := bson.M{"deliverId": deliverId}
-	findOptions, pagination := utils.BuildFindOptions(c, "-createdAt")
+	findOptions := utils.BuildFindOptions(c, "-createdAt")
 	cursor, err := a.Store.Orders.Find(ctx, filter, findOptions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -225,19 +204,6 @@ func (a *App) handleOrdersByDeliver(c *gin.Context) {
 	populated, err := a.populateOrders(ctx, orders, orderPopulateOptions{User: true, Florist: true})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-
-	if pagination != nil {
-		total, err := a.Store.Orders.CountDocuments(ctx, filter)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"data":       populated,
-			"pagination": utils.BuildPaginationMeta(total, pagination.Page, pagination.Limit),
-		})
 		return
 	}
 
@@ -257,7 +223,7 @@ func (a *App) handleAvailableOrders(c *gin.Context) {
 		},
 	}
 
-	findOptions, pagination := utils.BuildFindOptions(c, "-createdAt")
+	findOptions := utils.BuildFindOptions(c, "-createdAt")
 	cursor, err := a.Store.Orders.Find(ctx, filter, findOptions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -277,19 +243,6 @@ func (a *App) handleAvailableOrders(c *gin.Context) {
 		return
 	}
 
-	if pagination != nil {
-		total, err := a.Store.Orders.CountDocuments(ctx, filter)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"data":       populated,
-			"pagination": utils.BuildPaginationMeta(total, pagination.Page, pagination.Limit),
-		})
-		return
-	}
-
 	c.JSON(http.StatusOK, populated)
 }
 
@@ -299,7 +252,7 @@ func (a *App) handleOrdersByFlower(c *gin.Context) {
 	defer cancel()
 
 	filter := bson.M{"items.flowerId": flowerId}
-	findOptions, pagination := utils.BuildFindOptions(c, "-createdAt")
+	findOptions := utils.BuildFindOptions(c, "-createdAt")
 	cursor, err := a.Store.Orders.Find(ctx, filter, findOptions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -316,19 +269,6 @@ func (a *App) handleOrdersByFlower(c *gin.Context) {
 	populated, err := a.populateOrders(ctx, orders, orderPopulateOptions{User: true, Florist: true, Deliver: true})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-
-	if pagination != nil {
-		total, err := a.Store.Orders.CountDocuments(ctx, filter)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"data":       populated,
-			"pagination": utils.BuildPaginationMeta(total, pagination.Page, pagination.Limit),
-		})
 		return
 	}
 

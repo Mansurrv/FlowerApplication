@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"FlowerApplication/server/models"
-	"FlowerApplication/server/utils"
+	"FlowerApplication/pkg/server/models"
+	"FlowerApplication/pkg/server/utils"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -19,7 +19,7 @@ func (a *App) handleListUsers(c *gin.Context) {
 	defer cancel()
 
 	filter := bson.M{"role": "user"}
-	findOptions, pagination := utils.BuildFindOptions(c, "-createdAt")
+	findOptions := utils.BuildFindOptions(c, "-createdAt")
 	if c.Query("fields") == "" {
 		findOptions.SetProjection(bson.M{"password": 0})
 	}
@@ -34,19 +34,6 @@ func (a *App) handleListUsers(c *gin.Context) {
 	users := make([]models.User, 0)
 	if err := cursor.All(ctx, &users); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-
-	if pagination != nil {
-		total, err := a.Store.Users.CountDocuments(ctx, filter)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"data":       users,
-			"pagination": utils.BuildPaginationMeta(total, pagination.Page, pagination.Limit),
-		})
 		return
 	}
 
