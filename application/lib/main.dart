@@ -21,7 +21,14 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthService>.value(value: authService),
-        ChangeNotifierProvider<BasketProvider>(create: (_) => BasketProvider()),
+        ChangeNotifierProxyProvider<AuthService, BasketProvider>(
+          create: (_) => BasketProvider(),
+          update: (_, auth, basket) {
+            final provider = basket ?? BasketProvider();
+            provider.loadForUser(auth.userId);
+            return provider;
+          },
+        ),
       ],
       child: MyApp(),
     ),

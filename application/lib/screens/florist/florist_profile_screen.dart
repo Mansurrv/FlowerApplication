@@ -149,7 +149,6 @@ class _FloristProfileScreenState extends State<FloristProfileScreen> {
     try {
       // Get the AuthService from Provider
       final authService = Provider.of<AuthService>(context, listen: false);
-
       // Call logout on AuthService
       await authService.logout();
 
