@@ -25,6 +25,12 @@ const orderSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// Query optimization for common filters and dashboards
+orderSchema.index({ floristId: 1, status: 1, createdAt: -1 });
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ deliverId: 1, status: 1, createdAt: -1 });
+orderSchema.index({ "items.flowerId": 1 });
+
 orderSchema.pre('save', async function() {
   if (!this.orderNumber) {
     const timestamp = Date.now();

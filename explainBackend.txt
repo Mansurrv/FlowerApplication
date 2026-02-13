@@ -116,6 +116,15 @@ Models (Mongoose Schemas)
 - backend/src/models/Promotion.js
   - Promotion items for the app UI.
 
+Indexes and Optimization
+------------------------
+- Orders: compound indexes on floristId+status+createdAt, userId+createdAt, deliverId+status+createdAt, and items.flowerId.
+  - Justification: most order list endpoints filter by status/userId/floristId/deliverId and sort by recency; indexing these patterns reduces scan cost and improves pagination.
+- Flowers: compound indexes on categoryId+available+price, floristId+available+createdAt, city+available+createdAt.
+  - Justification: flower browsing/search endpoints filter by category/city/availability with price ranges and sort by createdAt for "popular/newest" lists.
+- Favorites: unique compound index on userId+flowerId to prevent duplicates and speed up per-user favorite lookups.
+- Existing unique/compound indexes: User.email, City.name, Order.orderNumber, and Connection compound indexes.
+
 Swagger / OpenAPI
 -----------------
 - backend/src/docs/openapi.yaml is the API contract.

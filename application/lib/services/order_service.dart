@@ -1,13 +1,26 @@
 // services/order_service.dart
 import 'dart:convert';
 import 'package:application/services/api_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/order_item.dart';
 
 class OrderService {
-  Future<Order> createOrder(Order order) async {
+  Future<String?> _resolveToken(String? authToken) async {
+    if (authToken != null && authToken.isNotEmpty) return authToken;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
+  }
+
+  Future<Order> createOrder(Order order, {String? authToken}) async {
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    final resolvedToken = await _resolveToken(authToken);
+    if (resolvedToken != null && resolvedToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $resolvedToken';
+    }
+
     final response = await ApiClient.post(
       '/api/orders',
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode(order.toJson()),
     );
 
@@ -18,8 +31,16 @@ class OrderService {
     }
   }
 
-  Future<List<Order>> getUserOrders(String userId) async {
-    final response = await ApiClient.get('/api/orders/user/$userId');
+  Future<List<Order>> getUserOrders(String userId, {String? authToken}) async {
+    final headers = <String, String>{};
+    final resolvedToken = await _resolveToken(authToken);
+    if (resolvedToken != null && resolvedToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $resolvedToken';
+    }
+    final response = await ApiClient.get(
+      '/api/orders/user/$userId',
+      headers: headers.isEmpty ? null : headers,
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -30,8 +51,16 @@ class OrderService {
   }
 
   // Add method to get florist orders
-  Future<List<Order>> getFloristOrders(String floristId) async {
-    final response = await ApiClient.get('/api/orders/florist/$floristId');
+  Future<List<Order>> getFloristOrders(String floristId, {String? authToken}) async {
+    final headers = <String, String>{};
+    final resolvedToken = await _resolveToken(authToken);
+    if (resolvedToken != null && resolvedToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $resolvedToken';
+    }
+    final response = await ApiClient.get(
+      '/api/orders/florist/$floristId',
+      headers: headers.isEmpty ? null : headers,
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);

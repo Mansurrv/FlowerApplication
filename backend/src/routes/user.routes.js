@@ -1,10 +1,14 @@
 const express = require("express");
 const User = require("../models/User");
 const authMiddleware = require("../middleware/authMiddleware");
+const requireRole = require("../middleware/requireRole");
+const requireAnyRole = require("../middleware/requireAnyRole");
 const { applyQueryOptions, buildPaginationMeta } = require("../utils/query");
 const router = express.Router();
 
-router.get("/", async (req, res, next) => {
+router.use(authMiddleware);
+
+router.get("/", requireRole("admin"), async (req, res, next) => {
   try {
     const filter = { role: "user" };
     const baseQuery = User.find(filter).select("-password");
@@ -27,8 +31,11 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", requireAnyRole("user", "admin"), async (req, res, next) => {
   try {
+    if (req.user.role === "user" && String(req.user.id) !== String(req.params.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
     const user = await User.findById(req.params.id).select("-password");
     if (!user) {
       return res.status(404).json({ message: "Пользователь не найден" });
@@ -45,7 +52,7 @@ router.get("/:id", async (req, res, next) => {
 });
 
 
-router.put("/profile", authMiddleware, async (req, res, next) => {
+router.put("/profile", async (req, res, next) => {
   try {
     const userId = req.user.id;
     const user = await User.findById(userId);

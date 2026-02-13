@@ -2,9 +2,14 @@ const router = require("express").Router();
 const Flower = require("../models/Flower");
 const Category = require("../models/Category");
 const { applyQueryOptions, buildPaginationMeta } = require("../utils/query");
+const authMiddleware = require("../middleware/authMiddleware");
+const requireAnyRole = require("../middleware/requireAnyRole");
 
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, requireAnyRole("florist", "admin"), async (req, res) => {
   try {
+    if (req.user.role === "florist") {
+      req.body.floristId = req.user.id;
+    }
     const flower = await Flower.create(req.body);
     res.status(201).json(flower);
   } catch (err) {
@@ -178,26 +183,6 @@ router.get("/search", async (req, res, next) => {
   }
 });
 
-router.get("/popular", async (req, res, next) => {
-  try {
-    const popularFlowers = await Flower.find({ available: true })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .populate("categoryId", "name")
-      .populate("floristId", "shopName")
-      .lean();
-
-    res.status(200).json({
-      success: true,
-      count: popularFlowers.length,
-      flowers: popularFlowers 
-    });
-  } catch (error) {
-    console.error("Popular flowers error:", error);
-    next(error);
-  }
-});
-
 router.get("/category/:categoryId", async (req, res, next) => {
   try {
     const filter = { categoryId: req.params.categoryId };
@@ -244,12 +229,34 @@ router.get("/city/:city", async (req, res, next) => {
   }
 });
 
-router.put("/:id", async (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
   try {
+    const flower = await Flower.findById(req.params.id)
+      .populate("categoryId", "name")
+      .populate("floristId", "name shopName city");
+    if (!flower) {
+      return res.status(404).json({ message: "Flower not found" });
+    }
+    res.json(flower);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/:id", authMiddleware, requireAnyRole("florist", "admin"), async (req, res, next) => {
+  try {
+    const existing = await Flower.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Flower not found" });
+    }
+    if (req.user.role === "florist" && String(existing.floristId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     const flower = await Flower.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true, runValidators: true }
     );
     res.json(flower);
   } catch (err) {
@@ -257,8 +264,15 @@ router.put("/:id", async (req, res, next) => {
   }
 });
 
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", authMiddleware, requireAnyRole("florist", "admin"), async (req, res, next) => {
   try {
+    const existing = await Flower.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Flower not found" });
+    }
+    if (req.user.role === "florist" && String(existing.floristId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
     await Flower.findByIdAndDelete(req.params.id);
     res.json({ message: "Flower deleted" });
   } catch (err) {

@@ -23,6 +23,17 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
   String _error = '';
   String _statusFilter = 'All';
 
+  Map<String, String> _authHeaders({bool includeJson = false}) {
+    final headers = <String, String>{'Accept': 'application/json'};
+    if (includeJson) {
+      headers['Content-Type'] = 'application/json';
+    }
+    if (widget.authToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer ${widget.authToken}';
+    }
+    return headers;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -39,11 +50,11 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
     try {
       final availableResponse = await ApiClient.get(
         '/api/orders/available',
-        headers: {'Accept': 'application/json'},
+        headers: _authHeaders(),
       );
       final myResponse = await ApiClient.get(
         '/api/orders/deliver/${widget.userId}',
-        headers: {'Accept': 'application/json'},
+        headers: _authHeaders(),
       );
 
       if (availableResponse.statusCode == 200 &&
@@ -122,10 +133,7 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
     try {
       final assignResponse = await ApiClient.put(
         '/api/orders/$orderId/assign-deliver',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: _authHeaders(includeJson: true),
         body: json.encode({'deliverId': widget.userId}),
       );
 
@@ -146,10 +154,7 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
     try {
       final response = await ApiClient.put(
         '/api/orders/$orderId/status',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: _authHeaders(includeJson: true),
         body: json.encode({'status': status}),
       );
       if (response.statusCode != 200) {

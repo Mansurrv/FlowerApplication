@@ -6,6 +6,16 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, city, role, phone, shopName } = req.body;
 
+    if (role === "admin") {
+      const adminSecret = req.body.adminSecret;
+      if (!process.env.ADMIN_SECRET) {
+        return res.status(403).json({ message: "Admin registration disabled" });
+      }
+      if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+        return res.status(403).json({ message: "Invalid admin secret" });
+      }
+    }
+
     const exists = await User.findOne({ email });
     if (exists) {
       return res.status(400).json({ message: "User already exists" });

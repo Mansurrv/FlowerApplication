@@ -11,6 +11,66 @@ import '../services/order_service.dart';
 import '../services/auth_service.dart'; // Add this import
 import '../services/api_client.dart';
 
+ImageProvider _basketImageProvider(String imageUrl) {
+  final trimmed = imageUrl.trim();
+  if (trimmed.isEmpty) {
+    return const AssetImage('assets/placeholder.jpg');
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return NetworkImage(trimmed);
+  }
+  if (trimmed.startsWith('/')) {
+    final baseUrl =
+        ApiClient.primaryBaseUrl.endsWith('/')
+            ? ApiClient.primaryBaseUrl.substring(
+              0,
+              ApiClient.primaryBaseUrl.length - 1,
+            )
+            : ApiClient.primaryBaseUrl;
+    return NetworkImage('$baseUrl$trimmed');
+  }
+  if (trimmed.startsWith('assets/') || trimmed.startsWith('images/')) {
+    return AssetImage(trimmed);
+  }
+  return const AssetImage('assets/placeholder.jpg');
+}
+
+Widget _buildItemThumbnail(
+  String imageUrl, {
+  double size = 80,
+  double radius = 8,
+  double iconSize = 24,
+}) {
+  return Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(radius),
+      color: Colors.grey[100],
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Image(
+        image: _basketImageProvider(imageUrl),
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey[200],
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.local_florist,
+              size: iconSize,
+              color: Colors.grey[500],
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
+
 class BasketScreen extends StatefulWidget {
   const BasketScreen({super.key});
 
@@ -344,13 +404,11 @@ class _BasketScreenState extends State<BasketScreen> {
             Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.grey[100],
-                image: DecorationImage(
-                  image: AssetImage(item.imageUrl),
-                  fit: BoxFit.cover,
-                ),
+              child: _buildItemThumbnail(
+                item.imageUrl,
+                size: 80,
+                radius: 8,
+                iconSize: 28,
               ),
             ),
             SizedBox(width: 12),
@@ -715,19 +773,11 @@ class _BasketScreenState extends State<BasketScreen> {
                       borderRadius: BorderRadius.circular(8),
                       color: Colors.grey[100],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        item.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
-                            Icons.local_florist,
-                            size: 16,
-                            color: Colors.grey,
-                          );
-                        },
-                      ),
+                    child: _buildItemThumbnail(
+                      item.imageUrl,
+                      size: 32,
+                      radius: 8,
+                      iconSize: 14,
                     ),
                   );
                 }).toList(),
@@ -1103,6 +1153,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         print('userId: ${order.userId}');
         print('floristId: ${order.floristId}');
         print('city: ${order.city}');
+        final token = widget.authService.authToken;
+        print('authToken length: ${token?.length ?? 0}');
       }
 
       // Call API to create order
@@ -1110,7 +1162,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         print('Calling _orderService.createOrder...');
       }
 
-      final createdOrder = await _orderService.createOrder(order);
+      final createdOrder = await _orderService.createOrder(
+        order,
+        authToken: widget.authService.authToken,
+      );
 
       if (kDebugMode) {
         print('Order created successfully!');
@@ -1228,13 +1283,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         leading: Container(
                           width: 50,
                           height: 50,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.grey[200],
-                            image: DecorationImage(
-                              image: AssetImage(item.imageUrl),
-                              fit: BoxFit.cover,
-                            ),
+                          child: _buildItemThumbnail(
+                            item.imageUrl,
+                            size: 50,
+                            radius: 8,
+                            iconSize: 20,
                           ),
                         ),
                         title: Text(item.name),

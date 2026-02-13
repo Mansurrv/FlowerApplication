@@ -70,6 +70,53 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _startSearch(String query) {
+    final normalized = query.trim();
+    if (!_isSearching) {
+      setState(() {
+        _isSearching = true;
+        _currentIndex = 1;
+      });
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _searchFocusNode.requestFocus();
+        }
+      });
+    }
+
+    _searchController.text = normalized;
+    _searchController.selection = TextSelection.collapsed(
+      offset: _searchController.text.length,
+    );
+
+    _searchDebounce?.cancel();
+    if (normalized.isEmpty) {
+      _loadAllFlowersForSearch();
+    } else {
+      _searchFlowers(normalized);
+    }
+  }
+
+  void _openSearchWithCategory(String categoryName) {
+    final normalized = categoryName.toString().trim();
+    final selected =
+        normalized.isEmpty || normalized.toLowerCase().contains('all')
+            ? 'All'
+            : normalized;
+
+    setState(() {
+      _filterCategory = selected;
+      if (!_isSearching) {
+        _isSearching = true;
+        _currentIndex = 1;
+      }
+    });
+
+    _searchController.clear();
+    _searchFocusNode.unfocus();
+    _loadAllFlowersForSearch();
+  }
+
   void _onSearchChanged() {
     if (_searchDebounce?.isActive ?? false) {
       _searchDebounce!.cancel();
@@ -803,6 +850,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'buttonText': 'Buy Now',
         'imagePath': 'images/image.png',
         'repeatCount': 1,
+        'searchQuery': '',
       },
       {
         'title': '',
@@ -810,6 +858,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'buttonText': 'Buy Now',
         'imagePath': 'images/imagecopy.png',
         'repeatCount': 1,
+        'searchQuery': '',
       },
       {
         'title': '',
@@ -817,6 +866,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'buttonText': 'Shop Now',
         'imagePath': 'images/imagecopy2.png',
         'repeatCount': 1,
+        'searchQuery': '',
       },
     ];
 
@@ -866,7 +916,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(height: 50),
                           ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              final query =
+                                  (item['searchQuery'] ??
+                                          item['title'] ??
+                                          item['subtitle'] ??
+                                          '')
+                                      .toString();
+                              _startSearch(query);
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: Colors.black,
@@ -1115,7 +1173,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return OutlinedButton(
       onPressed: () {
-        print('Selected category: $categoryName');
+        _openSearchWithCategory(categoryName);
       },
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: style['color'].withOpacity(0.35)),

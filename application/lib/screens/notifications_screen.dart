@@ -18,6 +18,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   String _errorMessage = '';
   List<Map<String, dynamic>> _notifications = [];
 
+  Map<String, String> _buildAuthHeaders() {
+    final headers = <String, String>{'Accept': 'application/json'};
+    final token = widget.authService.authToken;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -44,7 +53,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       final response = await ApiClient.get(
         '/api/notifications/',
-        headers: {'Accept': 'application/json'},
+        headers: _buildAuthHeaders(),
         queryParameters: {'to_user': userId},
       );
 
@@ -209,7 +218,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               try {
                                 final response = await ApiClient.delete(
                                   '/api/notifications/$id',
-                                  headers: {'Accept': 'application/json'},
+                                  headers: _buildAuthHeaders(),
                                 );
                                 if (!mounted) return;
                                 if (response.statusCode == 200) {

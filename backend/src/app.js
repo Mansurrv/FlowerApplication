@@ -18,6 +18,7 @@ const promotionRoutes = require("./routes/promotion.routes");
 const connectionRoutes = require("./routes/connection.routes")
 const floristRoutes = require('./routes/florist.routes');
 const adminRoutes = require("./routes/admin.routes");
+const notificationRoutes = require("./routes/notification.routes");
 
 const app = express();
 const apiV1 = express.Router();
@@ -25,8 +26,34 @@ const apiV1 = express.Router();
 app.use(cors());
 app.use(express.json());
 
+const webRoot = path.join(__dirname, "web");
+const webIndex = path.join(webRoot, "index.html");
+const webAdmin = path.join(webRoot, "admin.html");
+app.use("/web", express.static(webRoot));
+
 app.get("/", (req, res) => {
-  res.send("Flower Shop API is running");
+  res.sendFile(webIndex);
+});
+
+app.get("/admin", (req, res) => {
+  res.sendFile(webAdmin);
+});
+
+const uiRoot = path.join(__dirname, "..", "..", "golang", "ui");
+const uiStatic = path.join(uiRoot, "static");
+const uiIndex = path.join(uiRoot, "html", "index.html");
+
+app.use("/static", express.static(uiStatic));
+app.get("/wishlist", (req, res) => {
+  res.sendFile(uiIndex);
+});
+app.get("/wishlist/", (req, res) => {
+  res.sendFile(uiIndex);
+});
+
+const authTestPage = path.join(__dirname, "index.html");
+app.get("/auth-test", (req, res) => {
+  res.sendFile(authTestPage);
 });
 
 const openapiPath = path.join(__dirname, "docs", "openapi.yaml");
@@ -52,6 +79,7 @@ apiV1.use("/routes", routeRoutes);
 apiV1.use("/florists", floristRoutes);
 apiV1.use("/connection", connectionRoutes);
 apiV1.use("/admin", adminRoutes);
+apiV1.use("/notifications", notificationRoutes);
 
 
 app.use("/api/v1", apiV1);

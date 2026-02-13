@@ -38,6 +38,11 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
     _loadData();
   }
 
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) return;
+    setState(fn);
+  }
+
   Future<void> _loadData() async {
     await _fetchCategories();
     await _fetchFlowers();
@@ -52,7 +57,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        setState(() {
+        _safeSetState(() {
           _categories = data.map((category) {
             return {
               'id': category['_id'] ?? '',
@@ -67,7 +72,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
   }
 
   Future<void> _fetchFlowers() async {
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
       _errorMessage = '';
     });
@@ -93,7 +98,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
 
-        setState(() {
+        _safeSetState(() {
           _flowers = data.map((flower) {
             // Handle both image_url and imageUrl field names
             final imageUrl = flower['image_url'] ?? flower['imageUrl'] ?? '';
@@ -126,17 +131,17 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
           print('Loaded ${_flowers.length} flowers');
         }
       } else if (response.statusCode == 401) {
-        setState(() {
+        _safeSetState(() {
           _errorMessage = 'Authentication failed. Please login again.';
           _isLoading = false;
         });
       } else if (response.statusCode == 403) {
-        setState(() {
+        _safeSetState(() {
           _errorMessage = 'Access denied. You are not a florist.';
           _isLoading = false;
         });
       } else {
-        setState(() {
+        _safeSetState(() {
           _errorMessage =
               'Failed to load flowers (Status: ${response.statusCode})';
           _isLoading = false;
@@ -146,7 +151,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
       if (kDebugMode) {
         print('Error fetching flowers: $e');
       }
-      setState(() {
+      _safeSetState(() {
         _errorMessage = 'Error: ${e.toString()}';
         _isLoading = false;
       });
@@ -208,7 +213,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
                   }),
                 ],
                 onChanged: (value) {
-                  setState(() {
+                  _safeSetState(() {
                     _selectedCategoryId = value;
                   });
                 },
@@ -235,7 +240,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
                 title: Text('Available'),
                 value: _available,
                 onChanged: (value) {
-                  setState(() {
+                  _safeSetState(() {
                     _available = value;
                   });
                 },
@@ -277,7 +282,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
       return;
     }
 
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
     });
 
@@ -310,7 +315,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
     } catch (e) {
       _showSnackBar('Error: ${e.toString()}');
     } finally {
-      setState(() {
+      _safeSetState(() {
         _isLoading = false;
       });
     }
@@ -322,7 +327,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
       return;
     }
 
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
     });
 
@@ -354,7 +359,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
     } catch (e) {
       _showSnackBar('Error: ${e.toString()}');
     } finally {
-      setState(() {
+      _safeSetState(() {
         _isLoading = false;
         _editingFlowerId = null;
       });
@@ -382,7 +387,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
 
     if (confirmed != true) return;
 
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
     });
 
@@ -401,7 +406,7 @@ class _FloristProductsScreenState extends State<FloristProductsScreen> {
     } catch (e) {
       _showSnackBar('Error: ${e.toString()}');
     } finally {
-      setState(() {
+      _safeSetState(() {
         _isLoading = false;
       });
     }

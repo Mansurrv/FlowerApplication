@@ -1,8 +1,10 @@
 const router = require("express").Router();
 const Category = require("../models/Category");
 const { applyQueryOptions, buildPaginationMeta } = require("../utils/query");
+const authMiddleware = require("../middleware/authMiddleware");
+const requireRole = require("../middleware/requireRole");
 
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, requireRole("admin"), async (req, res) => {
   try {
     const category = await Category.create(req.body);
     res.status(201).json(category);
@@ -38,7 +40,21 @@ router.get("/:id", async (req, res) => {
   res.json(category);
 });
 
-router.delete("/:id", async (req, res) => {
+router.put("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
+  try {
+    const category = await Category.findByIdAndUpdate(
+      req.params.id,
+      { name: req.body.name },
+      { new: true, runValidators: true }
+    );
+    if (!category) return res.status(404).json({ message: "Not found" });
+    res.json(category);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
   await Category.findByIdAndDelete(req.params.id);
   res.json({ message: "Category deleted" });
 });

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FlowerApplication</title>
+  <link rel="stylesheet" href="/web/style.css" />
+</head>
+<body>
+  <div class="site">
+    <header>
+      <div class="brand">
+        <div class="brand-badge">FA</div>
+        <div>
+          <div>FlowerApplication</div>
+          <small>Multi-role flower marketplace</small>
+        </div>
+      </div>
+      <nav>
+        <a href="/api-docs">API Docs</a>
+        <a href="/wishlist">Wishlist</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <h1>Flowers delivered beautifully — from order to doorstep.</h1>
+        <p>
+          A complete marketplace for customers, florists, delivery partners, and admins.
+          Built on MongoDB with real-time analytics and role-secured workflows.
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="/api-docs">Explore API</a>
+          <a class="button soft" href="/wishlist">Open Wishlist UI</a>
+          <a class="button" href="/admin">Admin Dashboard</a>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <h3>Live catalog snapshot</h3>
+        <p>Updated directly from the database.</p>
+        <div class="metrics">
+          <div class="metric">
+            <strong id="stat-flowers">—</strong>
+            <div>Flowers</div>
+          </div>
+          <div class="metric">
+            <strong id="stat-categories">—</strong>
+            <div>Categories</div>
+          </div>
+          <div class="metric">
+            <strong id="stat-cities">—</strong>
+            <div>Cities</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Popular Flowers</h2>
+      <div class="grid" id="flower-grid">
+        <div class="card">Loading flowers...</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Why FlowerApplication</h2>
+      <div class="cards">
+        <div class="card">
+          <h4>Smart Orders</h4>
+          <p>Embedded order items enable fast reads and updates.</p>
+        </div>
+        <div class="card">
+          <h4>Secure Roles</h4>
+          <p>JWT authentication with role-based authorization.</p>
+        </div>
+        <div class="card">
+          <h4>Analytics Ready</h4>
+          <p>Aggregation pipelines power florist dashboards.</p>
+        </div>
+        <div class="card">
+          <h4>Admin Control</h4>
+          <p>Manage users, catalog, promotions, and cities.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      FlowerApplication API is running. See /api-docs for Swagger UI.
+    </footer>
+  </div>
+
+  <script src="/web/app.js"></script>
+</body>
+</html>

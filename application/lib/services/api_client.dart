@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   static const String primaryBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://golangbackendflowerapplication.onrender.com',
+    defaultValue: 'http://localhost:4040',
   );
   static const Duration defaultRequestTimeout = Duration(seconds: 30);
 

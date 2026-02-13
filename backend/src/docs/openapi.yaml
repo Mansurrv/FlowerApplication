@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Flower Shop API
-  version: 1.0.0
+  version: 1.1.0
   description: |-
     API for the FlowerApplication backend. Supports versioned routes under /api/v1.
 servers:
@@ -18,6 +18,13 @@ tags:
   - name: Cities
   - name: Promotions
   - name: Users
+  - name: Admin
+  - name: Favorites
+  - name: Notifications
+  - name: Connections
+  - name: Payments
+  - name: Routes
+  - name: Florists
 
 paths:
   /auth/register:
@@ -68,6 +75,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /categories:
     get:
       tags: [Categories]
@@ -87,6 +118,78 @@ paths:
                     items:
                       $ref: "#/components/schemas/Category"
                   - $ref: "#/components/schemas/PaginatedCategories"
+    post:
+      tags: [Categories]
+      summary: Create category (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /categories/{id}:
+    get:
+      tags: [Categories]
+      summary: Get category
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags: [Categories]
+      summary: Update category (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    delete:
+      tags: [Categories]
+      summary: Delete category (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
 
   /cities:
     get:
@@ -107,6 +210,60 @@ paths:
                     items:
                       $ref: "#/components/schemas/City"
                   - $ref: "#/components/schemas/PaginatedCities"
+    post:
+      tags: [Cities]
+      summary: Create city (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CityInput"
+      responses:
+        "201":
+          description: City created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/City"
+
+  /cities/{id}:
+    put:
+      tags: [Cities]
+      summary: Update city (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CityInput"
+      responses:
+        "200":
+          description: Updated city
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/City"
+    delete:
+      tags: [Cities]
+      summary: Delete city (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
 
   /flowers:
     get:
@@ -157,11 +314,218 @@ paths:
                     items:
                       $ref: "#/components/schemas/Flower"
                   - $ref: "#/components/schemas/PaginatedFlowers"
+    post:
+      tags: [Flowers]
+      summary: Create flower (florist/admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FlowerInput"
+      responses:
+        "201":
+          description: Created flower
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Flower"
+
+  /flowers/search:
+    get:
+      tags: [Flowers]
+      summary: Search flowers
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+                  flowers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Flower"
+
+  /flowers/search/advanced:
+    get:
+      tags: [Flowers]
+      summary: Advanced search
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+        - name: available
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+                  flowers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Flower"
+
+  /flowers/popular:
+    get:
+      tags: [Flowers]
+      summary: List popular flowers
+      responses:
+        "200":
+          description: Popular list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+                  flowers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Flower"
+
+  /flowers/category/{categoryId}:
+    get:
+      tags: [Flowers]
+      summary: List flowers by category
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Flower list
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/Flower"
+                  - $ref: "#/components/schemas/PaginatedFlowers"
+
+  /flowers/city/{city}:
+    get:
+      tags: [Flowers]
+      summary: List flowers by city
+      parameters:
+        - name: city
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Flower list
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/Flower"
+                  - $ref: "#/components/schemas/PaginatedFlowers"
+
+  /flowers/{id}:
+    get:
+      tags: [Flowers]
+      summary: Get flower
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Flower
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Flower"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags: [Flowers]
+      summary: Update flower (florist/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FlowerInput"
+      responses:
+        "200":
+          description: Updated flower
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Flower"
+    delete:
+      tags: [Flowers]
+      summary: Delete flower (florist/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
 
   /orders:
     get:
       tags: [Orders]
-      summary: List orders
+      summary: List orders (admin/florist/deliver)
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/Limit"
@@ -193,6 +557,352 @@ paths:
                     items:
                       $ref: "#/components/schemas/Order"
                   - $ref: "#/components/schemas/PaginatedOrders"
+    post:
+      tags: [Orders]
+      summary: Create order (user/admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderCreateRequest"
+      responses:
+        "201":
+          description: Created order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/user/{userId}:
+    get:
+      tags: [Orders]
+      summary: List orders for a user (self/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+      responses:
+        "200":
+          description: Order list
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/Order"
+                  - $ref: "#/components/schemas/PaginatedOrders"
+
+  /orders/florist/{floristId}:
+    get:
+      tags: [Orders]
+      summary: List orders for a florist (self/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: floristId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+      responses:
+        "200":
+          description: Order list
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/Order"
+                  - $ref: "#/components/schemas/PaginatedOrders"
+
+  /orders/deliver/{deliverId}:
+    get:
+      tags: [Orders]
+      summary: List orders for a deliverer (self/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deliverId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+      responses:
+        "200":
+          description: Order list
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/Order"
+                  - $ref: "#/components/schemas/PaginatedOrders"
+
+  /orders/available:
+    get:
+      tags: [Orders]
+      summary: List available orders (deliver/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+      responses:
+        "200":
+          description: Order list
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/Order"
+                  - $ref: "#/components/schemas/PaginatedOrders"
+
+  /orders/flower/{flowerId}:
+    get:
+      tags: [Orders]
+      summary: List orders containing a flower (florist/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: flowerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order list
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/Order"
+                  - $ref: "#/components/schemas/PaginatedOrders"
+
+  /orders/analytics/florist/{floristId}:
+    get:
+      tags: [Orders]
+      summary: Florist analytics (florist/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: floristId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Analytics summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderAnalyticsResponse"
+
+  /orders/{id}/items:
+    post:
+      tags: [Orders]
+      summary: Add item to order (user/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderItemInput"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}/items/{flowerId}:
+    patch:
+      tags: [Orders]
+      summary: Update item quantity/price (user/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - name: flowerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderItemUpdate"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    delete:
+      tags: [Orders]
+      summary: Remove item from order (user/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - name: flowerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/fix/florist:
+    get:
+      tags: [Orders]
+      summary: Find orders missing floristId (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Fix report
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /orders/fix/add-florist-id:
+    put:
+      tags: [Orders]
+      summary: Auto-assign floristId from items (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Fix summary
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /orders/{id}/status:
+    put:
+      tags: [Orders]
+      summary: Update order status (role-based)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderStatusUpdate"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}/assign-deliver:
+    put:
+      tags: [Orders]
+      summary: Assign delivery (deliver/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignDeliverRequest"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}/florist:
+    put:
+      tags: [Orders]
+      summary: Update florist for order (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                floristId:
+                  type: string
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}:
+    delete:
+      tags: [Orders]
+      summary: Delete order (admin or owner)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
 
   /promotions:
     get:
@@ -218,11 +928,47 @@ paths:
                     items:
                       $ref: "#/components/schemas/Promotion"
                   - $ref: "#/components/schemas/PaginatedPromotions"
+    post:
+      tags: [Promotions]
+      summary: Create promotion (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromotionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Promotion"
+
+  /promotions/{id}:
+    delete:
+      tags: [Promotions]
+      summary: Delete promotion (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
 
   /users:
     get:
       tags: [Users]
-      summary: List users with role=user
+      summary: List users with role=user (admin)
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/Limit"
@@ -239,8 +985,535 @@ paths:
                       $ref: "#/components/schemas/User"
                   - $ref: "#/components/schemas/PaginatedUsers"
 
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user (self/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/profile:
+    put:
+      tags: [Users]
+      summary: Update current user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: "#/components/schemas/User"
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Admin user management list
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+                  - $ref: "#/components/schemas/PaginatedUsers"
+
+  /admin/users/{id}:
+    patch:
+      tags: [Admin]
+      summary: Update user (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      tags: [Admin]
+      summary: Delete user (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  /favorites:
+    post:
+      tags: [Favorites]
+      summary: Add favorite
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [flowerId]
+              properties:
+                flowerId:
+                  type: string
+      responses:
+        "201":
+          description: Created favorite
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Favorite"
+
+  /favorites/user/{userId}:
+    get:
+      tags: [Favorites]
+      summary: List favorites (self/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Favorites list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Favorite"
+
+  /favorites/{id}:
+    delete:
+      tags: [Favorites]
+      summary: Delete favorite (owner/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications (self/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: to_user
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+    post:
+      tags: [Notifications]
+      summary: Create notification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationInput"
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/{id}:
+    delete:
+      tags: [Notifications]
+      summary: Delete notification (owner/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  /connection/connect:
+    post:
+      tags: [Connections]
+      summary: Request/accept connection
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetUserId]
+              properties:
+                targetUserId:
+                  type: string
+      responses:
+        "201":
+          description: Connection created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Connection"
+
+  /connection/current/{userId}:
+    get:
+      tags: [Connections]
+      summary: Get current connection (self/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current connection
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /connection/history/{userId}:
+    get:
+      tags: [Connections]
+      summary: Connection history (self/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: History
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /connection/{userId}:
+    get:
+      tags: [Connections]
+      summary: List connections (self/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Connections
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /order-items:
+    post:
+      tags: [Orders]
+      summary: Create order item (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderItemCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderItem"
+
+  /order-items/order/{orderId}:
+    get:
+      tags: [Orders]
+      summary: List order items (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderItem"
+
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Create payment (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Payment"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments/order/{orderId}:
+    get:
+      tags: [Payments]
+      summary: List payments for order (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+
+  /routes:
+    post:
+      tags: [Routes]
+      summary: Create delivery route (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Route"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Route"
+
+  /routes/order/{orderId}:
+    get:
+      tags: [Routes]
+      summary: Get delivery route for order (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Route
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Route"
+
+  /florists/profile:
+    get:
+      tags: [Florists]
+      summary: Get florist profile (florist)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                type: object
+    put:
+      tags: [Florists]
+      summary: Update florist profile (florist)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /florists/statistics:
+    get:
+      tags: [Florists]
+      summary: Florist statistics (florist)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Statistics
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /florists/flowers:
+    get:
+      tags: [Florists]
+      summary: Florist flowers (florist)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Flower list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Flower"
+
+  /florists/orders:
+    get:
+      tags: [Florists]
+      summary: Florist orders (florist)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Order list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Resource id
     Page:
       name: page
       in: query
@@ -276,6 +1549,12 @@ components:
         message:
           type: string
 
+    SuccessMessage:
+      type: object
+      properties:
+        message:
+          type: string
+
     Pagination:
       type: object
       properties:
@@ -300,6 +1579,23 @@ components:
           type: string
         role:
           type: string
+        city:
+          type: string
+        phone:
+          type: string
+        shopName:
+          type: string
+        adminSecret:
+          type: string
+
+    ResetPasswordRequest:
+      type: object
+      required: [email, newPassword]
+      properties:
+        email:
+          type: string
+        newPassword:
+          type: string
 
     LoginRequest:
       type: object
@@ -318,6 +1614,38 @@ components:
         user:
           $ref: "#/components/schemas/User"
 
+    UserProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+        phone:
+          type: string
+
+    AdminUserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        city:
+          type: string
+        phone:
+          type: string
+        shopName:
+          type: string
+        address:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        role:
+          type: string
+
     User:
       type: object
       properties:
@@ -333,6 +1661,25 @@ components:
           type: string
         phone:
           type: string
+        shopName:
+          type: string
+        address:
+          type: string
+        description:
+          type: string
+        rating:
+          type: number
+        totalReviews:
+          type: number
+        status:
+          type: string
+
+    CategoryInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
 
     Category:
       type: object
@@ -342,12 +1689,39 @@ components:
         name:
           type: string
 
+    CityInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+
     City:
       type: object
       properties:
         _id:
           type: string
         name:
+          type: string
+
+    FlowerInput:
+      type: object
+      properties:
+        name:
+          type: string
+        price:
+          type: number
+        description:
+          type: string
+        image_url:
+          type: string
+        available:
+          type: boolean
+        categoryId:
+          type: string
+        floristId:
+          type: string
+        city:
           type: string
 
     Flower:
@@ -371,6 +1745,91 @@ components:
           type: string
         city:
           type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderItemInput:
+      type: object
+      required: [flowerId, quantity, price]
+      properties:
+        flowerId:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: number
+
+    OrderItemUpdate:
+      type: object
+      properties:
+        quantity:
+          type: integer
+        price:
+          type: number
+
+    OrderItem:
+      type: object
+      properties:
+        _id:
+          type: string
+        orderId:
+          type: string
+        flowerId:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: number
+
+    OrderItemCreateRequest:
+      type: object
+      required: [orderId, flowerId, quantity, price]
+      properties:
+        orderId:
+          type: string
+        flowerId:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: number
+
+    OrderCreateRequest:
+      type: object
+      required: [totalPrice, city, items]
+      properties:
+        userId:
+          type: string
+        floristId:
+          type: string
+        deliverId:
+          type: string
+        status:
+          type: string
+        totalPrice:
+          type: number
+        city:
+          type: string
+        deliveryAddress:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItemInput"
+
+    OrderStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    AssignDeliverRequest:
+      type: object
+      properties:
+        deliverId:
+          type: string
 
     Order:
       type: object
@@ -389,6 +1848,69 @@ components:
           type: number
         city:
           type: string
+        deliveryAddress:
+          type: string
+        orderNumber:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderAnalyticsResponse:
+      type: object
+      properties:
+        floristId:
+          type: string
+        summary:
+          type: object
+          properties:
+            totalOrders:
+              type: integer
+            totalRevenue:
+              type: number
+        byStatus:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              count:
+                type: integer
+              revenue:
+                type: number
+        topFlowers:
+          type: array
+          items:
+            type: object
+            properties:
+              flowerId:
+                type: string
+              name:
+                type: string
+              totalQuantity:
+                type: integer
+              totalSales:
+                type: number
+
+    PromotionInput:
+      type: object
+      required: [title, imageUrl]
+      properties:
+        title:
+          type: string
+        subtitle:
+          type: string
+        imageUrl:
+          type: string
+        isActive:
+          type: boolean
+        sortOrder:
+          type: number
 
     Promotion:
       type: object
@@ -405,6 +1927,86 @@ components:
           type: boolean
         sortOrder:
           type: number
+
+    Favorite:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        flowerId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    NotificationInput:
+      type: object
+      required: [to_user, message]
+      properties:
+        to_user:
+          type: string
+        message:
+          type: string
+
+    Notification:
+      type: object
+      properties:
+        _id:
+          type: string
+        from_user:
+          type: string
+        to_user:
+          type: string
+        message:
+          type: string
+        created_at:
+          type: integer
+
+    Connection:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        connectedUserId:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Payment:
+      type: object
+      properties:
+        _id:
+          type: string
+        orderId:
+          type: string
+        amount:
+          type: number
+        method:
+          type: string
+        status:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+
+    Route:
+      type: object
+      properties:
+        _id:
+          type: string
+        orderId:
+          type: string
+        startPoint:
+          type: string
+        endPoint:
+          type: string
 
     PaginatedCategories:
       type: object
