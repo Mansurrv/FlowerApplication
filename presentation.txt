@@ -1,0 +1,67 @@
+FlowerApplication Go Backend Presentation Outline
+
+Slide 1 - Title
+- FlowerApplication Go Backend
+- REST API for a multi-role flower marketplace
+- Team / course / date (fill in)
+
+Slide 2 - Problem and Goals
+- Provide a single API for customers, florists, delivery, and admins
+- Keep catalog and orders consistent in MongoDB
+- Secure access with JWT and role checks
+
+Slide 3 - Tech Stack
+- Go + Gin for HTTP routing
+- MongoDB (official Go driver)
+- JWT for auth, bcrypt for password hashing
+
+Slide 4 - Runtime Flow
+- `golang/cmd/web/main.go` loads env, connects to MongoDB, starts Gin
+- Routes are mounted at `/api` and `/api/v1`
+- Optional static UI served at `/wishlist`
+
+Slide 5 - Core API Modules
+- Auth: register, login, reset password
+- Catalog: categories, cities, flowers, promotions
+- Orders: orders, order items, routes
+- Users and admin user management
+- Florist endpoints, favorites, notifications
+
+Slide 6 - Data Model (MongoDB)
+- Users, Flowers, Categories, Cities
+- Orders, OrderItems, Routes
+- Favorites, Promotions, Notifications
+
+Slide 7 - Key Endpoints (Examples)
+- POST /api/auth/register, POST /api/auth/login
+- GET /api/flowers, /api/flowers/popular, /api/flowers/search
+- POST /api/orders, PUT /api/orders/:id/status
+- GET /api/florists/orders, GET /api/admin/users
+
+Slide 8 - Security
+- Passwords hashed with bcrypt
+- JWT tokens with expiration
+- Middleware for auth and role checks (admin, florist)
+- Basic input validation in handlers
+
+Slide 9 - Configuration
+- Required env vars: `MONGO_URI` (or `DATABASE_URL`), `JWT_SECRET`
+- Optional: `PORT`, `NODE_ENV`, `MONGO_DB_NAME` / `DB_NAME` / `DATABASE_NAME`
+- `.env` files are loaded for local development
+
+Slide 10 - Observability
+- Gin logger and recovery middleware
+- Not-found handler returns JSON message
+
+Slide 11 - Demo Flow (Backend)
+- Register and login to get a JWT
+- Create a flower listing
+- Create an order with items
+- Update order status or assign a delivery
+- Fetch florist statistics
+
+Slide 12 - Future Improvements
+- Pagination and filters on all list endpoints
+- Rate limiting and audit logs
+- Payment integration and webhooks
+- Automated tests and CI

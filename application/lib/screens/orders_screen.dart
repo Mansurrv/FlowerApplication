@@ -1,8 +1,8 @@
 // screens/orders_screen.dart
 import 'package:application/models/order_item.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:application/services/api_client.dart';
 import '../services/auth_service.dart';
 import '../models/order_item.dart';
 
@@ -50,8 +50,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     try {
       final userId = widget.authService.userId;
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/orders/user/$userId'),
+      final response = await ApiClient.get(
+        '/api/orders/user/$userId',
         headers: _buildAuthHeaders(),
       );
 
@@ -114,8 +114,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
     if (confirmed != true) return;
 
     try {
-      final cancelResponse = await http.put(
-        Uri.parse('http://localhost:4040/api/orders/$orderId/status'),
+      final cancelResponse = await ApiClient.put(
+        '/api/orders/$orderId/status',
         headers: {
           ..._buildAuthHeaders(),
           'Content-Type': 'application/json',
@@ -135,8 +135,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
         return;
       }
 
-      final deleteResponse = await http.delete(
-        Uri.parse('http://localhost:4040/api/orders/$orderId'),
+      final deleteResponse = await ApiClient.delete(
+        '/api/orders/$orderId',
         headers: _buildAuthHeaders(),
       );
 

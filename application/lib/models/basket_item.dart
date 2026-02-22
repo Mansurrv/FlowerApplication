@@ -50,4 +50,34 @@ class BasketItem {
   String toString() {
     return 'BasketItem{name: $name, flowerId: $flowerId, floristId: $floristId}';
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'flowerId': flowerId,
+      'name': name,
+      'price': price,
+      'quantity': quantity,
+      'imageUrl': imageUrl,
+      'floristId': floristId,
+      'floristName': floristName,
+    };
+  }
+
+  static BasketItem fromJson(Map<String, dynamic> json) {
+    return BasketItem(
+      id: json['id']?.toString() ?? '',
+      flowerId: json['flowerId']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      price: (json['price'] is num)
+          ? (json['price'] as num).toDouble()
+          : double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
+      quantity: (json['quantity'] is num)
+          ? (json['quantity'] as num).toInt()
+          : int.tryParse(json['quantity']?.toString() ?? '') ?? 0,
+      imageUrl: json['imageUrl']?.toString() ?? '',
+      floristId: json['floristId']?.toString(),
+      floristName: json['floristName']?.toString(),
+    );
+  }
 }

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FlowerApplication Admin</title>
+  <link rel="stylesheet" href="/web/style.css" />
+</head>
+<body>
+  <div class="site">
+    <header>
+      <div class="brand">
+        <div class="brand-badge">AD</div>
+        <div>
+          <div>Admin Console</div>
+          <small>FlowerApplication</small>
+        </div>
+      </div>
+      <nav>
+        <a href="/">Landing</a>
+        <a href="/api-docs">API Docs</a>
+        <a href="/wishlist">Wishlist</a>
+      </nav>
+    </header>
+
+    <section class="admin-layout">
+      <div class="admin-header">
+        <div>
+          <h1 style="margin: 0;">Admin Dashboard</h1>
+          <p style="margin: 6px 0 0; color: #6b6b6b;">Login to load real platform data.</p>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button id="logout-btn" class="button soft hidden" type="button">Logout</button>
+          <a class="button primary" href="/api-docs">Open API Docs</a>
+        </div>
+      </div>
+
+      <div class="admin-grid">
+        <aside class="sidebar">
+          <a class="active" href="#" data-section="overview">Overview</a>
+          <a href="#" data-section="users">Users <span id="nav-users-count"></span></a>
+          <a href="#" data-section="florists">Florists <span id="nav-florists-count"></span></a>
+          <a href="#" data-section="orders">Orders <span id="nav-orders-count"></span></a>
+          <a href="#" data-section="promotions">Promotions <span id="nav-promotions-count"></span></a>
+          <a href="#" data-section="cities">Cities <span id="nav-cities-count"></span></a>
+          <a href="#" data-section="categories">Categories <span id="nav-categories-count"></span></a>
+        </aside>
+
+        <div class="dashboard">
+          <div class="cards">
+            <div class="card">
+              <h4>Admin Login</h4>
+              <form class="form" id="login-form">
+                <input id="login-email" type="email" placeholder="Email" required />
+                <input id="login-password" type="password" placeholder="Password" required />
+                <button class="button primary" type="submit">Login</button>
+              </form>
+              <div id="login-msg" class="notice" style="display:none;"></div>
+            </div>
+            <div class="card">
+              <h4>Access</h4>
+              <p>Admin accounts are created by system owners. Login with provided credentials.</p>
+            </div>
+          </div>
+
+          <section id="section-overview">
+            <div class="kpis">
+              <div class="kpi">
+                <strong id="kpi-orders">—</strong>
+                <div>Orders</div>
+              </div>
+              <div class="kpi">
+                <strong id="kpi-users">—</strong>
+                <div>Users</div>
+              </div>
+              <div class="kpi">
+                <strong id="kpi-florists">—</strong>
+                <div>Florists</div>
+              </div>
+              <div class="kpi">
+                <strong id="kpi-promotions">—</strong>
+                <div>Promotions</div>
+              </div>
+            </div>
+
+            <div class="table">
+              <h4 style="margin-top: 0;">Recent Orders</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Status</th>
+                    <th>Florist</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody id="orders-table">
+                  <tr>
+                    <td colspan="4">Login to load orders.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="section-users" class="hidden">
+            <div class="table">
+              <h4 style="margin-top: 0;">Users</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>City</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table">
+                  <tr><td colspan="4">Login to load users.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="section-florists" class="hidden">
+            <div class="table">
+              <h4 style="margin-top: 0;">Florists</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Shop</th>
+                    <th>City</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="florists-table">
+                  <tr><td colspan="4">Login to load florists.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="section-orders" class="hidden">
+            <div class="table">
+              <h4 style="margin-top: 0;">Orders</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Status</th>
+                    <th>City</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody id="all-orders-table">
+                  <tr><td colspan="4">Login to load orders.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="section-promotions" class="hidden">
+            <div class="table">
+              <h4 style="margin-top: 0;">Promotions</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Active</th>
+                    <th>Sort</th>
+                  </tr>
+                </thead>
+                <tbody id="promotions-table">
+                  <tr><td colspan="3">Loading promotions...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="section-cities" class="hidden">
+            <div class="table">
+              <h4 style="margin-top: 0;">Cities</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                  </tr>
+                </thead>
+                <tbody id="cities-table">
+                  <tr><td>Loading cities...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="section-categories" class="hidden">
+            <div class="table">
+              <h4 style="margin-top: 0;">Categories</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                  </tr>
+                </thead>
+                <tbody id="categories-table">
+                  <tr><td>Loading categories...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/web/admin.js"></script>
+</body>
+</html>

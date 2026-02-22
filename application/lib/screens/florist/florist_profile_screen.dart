@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:application/main.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:application/services/api_client.dart';
 import 'package:provider/provider.dart';
 import 'package:application/services/auth_service.dart';
 
@@ -52,8 +52,8 @@ class _FloristProfileScreenState extends State<FloristProfileScreen> {
 
     try {
       // Try the florist-specific endpoint first
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/florists/profile'),
+      final response = await ApiClient.get(
+        '/api/florists/profile',
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer ${widget.authToken}',
@@ -88,8 +88,8 @@ class _FloristProfileScreenState extends State<FloristProfileScreen> {
   Future<void> _fetchUserProfile() async {
     try {
       // Fallback to regular user profile endpoint
-      final response = await http.get(
-        Uri.parse('http://localhost:4040/api/users/profile'),
+      final response = await ApiClient.get(
+        '/api/users/profile',
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer ${widget.authToken}',
@@ -149,7 +149,6 @@ class _FloristProfileScreenState extends State<FloristProfileScreen> {
     try {
       // Get the AuthService from Provider
       final authService = Provider.of<AuthService>(context, listen: false);
-
       // Call logout on AuthService
       await authService.logout();
 
@@ -186,8 +185,8 @@ class _FloristProfileScreenState extends State<FloristProfileScreen> {
     });
 
     try {
-      final response = await http.put(
-        Uri.parse('http://localhost:4040/api/florists/profile'),
+      final response = await ApiClient.put(
+        '/api/florists/profile',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.authToken}',

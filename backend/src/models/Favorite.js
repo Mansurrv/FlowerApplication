@@ -8,5 +8,6 @@ const favoriteSchema = new mongoose.Schema(
     {timestamps: true}
 );
 
-module.exports = mongoose.model("Favorite", favoriteSchema);
+favoriteSchema.index({ userId: 1, flowerId: 1 }, { unique: true });
 
+module.exports = mongoose.model("Favorite", favoriteSchema);

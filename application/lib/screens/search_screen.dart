@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:http/http.dart' as http;
+import 'package:application/services/api_client.dart';
 import 'dart:convert';
 
 class FlowerSearchWidget extends StatefulWidget {
@@ -92,21 +92,21 @@ class _FlowerSearchWidgetState extends State<FlowerSearchWidget> {
     });
 
     try {
-      // Construct query with filters
-      String apiUrl = 'https://your-flower-api.com/search?q=$query';
+      final queryParameters = <String, String>{'q': query};
 
       if (_selectedColor != 'All') {
-        apiUrl += '&color=${_selectedColor.toLowerCase()}';
+        queryParameters['color'] = _selectedColor.toLowerCase();
       }
 
       if (_selectedSeason != 'All') {
-        apiUrl += '&season=${_selectedSeason.toLowerCase()}';
+        queryParameters['season'] = _selectedSeason.toLowerCase();
       }
 
-      apiUrl += '&maxPrice=$_priceRange';
+      queryParameters['maxPrice'] = _priceRange.toString();
 
-      final response = await http.get(
-        Uri.parse(apiUrl),
+      final response = await ApiClient.get(
+        '/api/flowers/search',
+        queryParameters: queryParameters,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -147,8 +147,8 @@ class _FlowerSearchWidgetState extends State<FlowerSearchWidget> {
     });
 
     try {
-      final response = await http.get(
-        Uri.parse('https://your-flower-api.com/popular'),
+      final response = await ApiClient.get(
+        '/api/flowers/popular',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

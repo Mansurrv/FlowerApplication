@@ -1,21 +1,63 @@
 const router = require("express").Router();
 const Order = require("../models/Order");
-const Flower = require("../models/Flower"); // Add this import
+const Flower = require("../models/Flower"); 
+const { applyQueryOptions, buildPaginationMeta } = require("../utils/query");
+const authMiddleware = require("../middleware/authMiddleware");
+const requireRole = require("../middleware/requireRole");
+const requireAnyRole = require("../middleware/requireAnyRole");
 
-// In order.routes.js, update the POST endpoint
+const isAdmin = (req) => req.user && req.user.role === "admin";
+
+const requireSelfIfRole = (role, paramName) => (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  if (req.user.role === role) {
+    const expected = String(req.params[paramName] || "");
+    const actual = String(req.user.id || "");
+    if (!expected || expected !== actual) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+  }
+  next();
+};
+
+const allowedStatusByRole = {
+  user: ["cancelled"],
+  florist: ["confirmed", "preparing", "delivering", "cancelled"],
+  deliver: ["delivering", "delivered"],
+  admin: ["pending", "confirmed", "preparing", "delivering", "delivered", "cancelled"],
+};
+
+router.use(authMiddleware);
+
+
 router.post("/", async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    if (!["user", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    if (req.user.role === "user") {
+      req.body.userId = req.user.id;
+    } else if (!req.body.userId) {
+      req.body.userId = req.user.id;
+    }
+
     console.log('Creating order with data:', req.body);
     
-    // Validate required fields
+    
     if (!req.body.userId || !req.body.totalPrice || !req.body.city || !req.body.items) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    // If floristId is not provided in request, try to get it from the first item
+    
     if (!req.body.floristId && req.body.items && req.body.items.length > 0) {
       try {
-        // Get the flower details to extract floristId
+        
         const firstFlower = await Flower.findById(req.body.items[0].flowerId);
         if (firstFlower && firstFlower.floristId) {
           req.body.floristId = firstFlower.floristId;
@@ -35,102 +77,491 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
-  const orders = await Order.find()
-    .populate("userId", "name phone city")
-    .populate("floristId", "name shopName email")
-    .populate("deliverId", "name vehicleType")
-    .sort({ createdAt: -1 }); // Sort by newest first
+router.get("/", requireAnyRole("admin", "florist", "deliver"), async (req, res, next) => {
+  try {
+    const filter = {};
 
-  res.json(orders);
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+
+    if (req.query.userId) {
+      filter.userId = req.query.userId;
+    }
+
+    if (req.query.floristId) {
+      filter.floristId = req.query.floristId;
+    }
+
+    if (req.query.deliverId) {
+      filter.deliverId = req.query.deliverId;
+    }
+
+    if (req.user.role === "florist") {
+      filter.floristId = req.user.id;
+    } else if (req.user.role === "deliver") {
+      filter.deliverId = req.user.id;
+    }
+
+    const baseQuery = Order.find(filter)
+      .populate("userId", "name phone city")
+      .populate("floristId", "name shopName email")
+      .populate("deliverId", "name vehicleType");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
+
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
+    res.json(orders);
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Get orders for a specific user (customer)
-router.get("/user/:userId", async (req, res) => {
-  const orders = await Order.find({ userId: req.params.userId })
-    .populate("floristId", "name shopName")
-    .sort({ createdAt: -1 });
-  res.json(orders);
+
+router.get(
+  "/user/:userId",
+  requireAnyRole("user", "admin"),
+  requireSelfIfRole("user", "userId"),
+  async (req, res, next) => {
+  try {
+    const filter = { userId: req.params.userId };
+    const baseQuery = Order.find(filter)
+      .populate("floristId", "name shopName");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
+
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
+    res.json(orders);
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Get orders for a specific florist - IMPROVED VERSION
-router.get("/florist/:floristId", async (req, res) => {
+
+router.get(
+  "/florist/:floristId",
+  requireAnyRole("florist", "admin"),
+  requireSelfIfRole("florist", "floristId"),
+  async (req, res, next) => {
   try {
     console.log('Fetching orders for florist:', req.params.floristId);
     
-    // Find orders where floristId matches OR where items contain products from this florist
-    const orders = await Order.find({
+    
+    const filter = {
       $or: [
         { floristId: req.params.floristId },
-        // You could also search in items if you store floristId there
-        // { "items.floristId": req.params.floristId }
+        
+        
       ]
-    })
-    .populate("userId", "name phone email city")
-    .populate("floristId", "name shopName email")
-    .populate("deliverId", "name phone")
-    .sort({ createdAt: -1 });
+    };
+
+    const baseQuery = Order.find(filter)
+      .populate("userId", "name phone email city")
+      .populate("floristId", "name shopName email")
+      .populate("deliverId", "name phone");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
     
     console.log(`Found ${orders.length} orders for florist ${req.params.floristId}`);
+
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
     res.json(orders);
   } catch (err) {
     console.error('Error fetching florist orders:', err);
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// Get orders assigned to a delivery partner
-router.get("/deliver/:deliverId", async (req, res) => {
+
+router.get(
+  "/deliver/:deliverId",
+  requireAnyRole("deliver", "admin"),
+  requireSelfIfRole("deliver", "deliverId"),
+  async (req, res, next) => {
   try {
-    const orders = await Order.find({ deliverId: req.params.deliverId })
+    const filter = { deliverId: req.params.deliverId };
+    const baseQuery = Order.find(filter)
       .populate("userId", "name phone email city")
-      .populate("floristId", "name shopName email")
-      .sort({ createdAt: -1 });
+      .populate("floristId", "name shopName email");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
+
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// Get available orders for delivery
-router.get("/available", async (req, res) => {
+
+router.get("/available", requireAnyRole("deliver", "admin"), async (req, res, next) => {
   try {
-    const orders = await Order.find({
+    const filter = {
       status: { $in: ["confirmed", "preparing", "delivering"] },
       $or: [
         { deliverId: { $exists: false } },
         { deliverId: null },
         { deliverId: "" },
       ],
-    })
+    };
+
+    const baseQuery = Order.find(filter)
       .populate("userId", "name phone email city")
-      .populate("floristId", "name shopName email")
-      .sort({ createdAt: -1 });
+      .populate("floristId", "name shopName email");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
+
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// NEW: Get orders by flower ID (useful for florists to see who ordered specific flowers)
-router.get("/flower/:flowerId", async (req, res) => {
+
+router.get(
+  "/flower/:flowerId",
+  requireAnyRole("florist", "admin"),
+  async (req, res, next) => {
   try {
-    const orders = await Order.find({
-      "items.flowerId": req.params.flowerId
-    })
-    .populate("userId", "name phone email city")
-    .populate("floristId", "name shopName email")
-    .populate("deliverId", "name phone")
-    .sort({ createdAt: -1 });
+    const filter = { "items.flowerId": req.params.flowerId };
+
+    const baseQuery = Order.find(filter)
+      .populate("userId", "name phone email city")
+      .populate("floristId", "name shopName email")
+      .populate("deliverId", "name phone");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const orders = await query;
+    
+    if (pagination) {
+      const total = await Order.countDocuments(filter);
+      return res.json({
+        data: orders,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
     
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// NEW: Get orders that need floristId to be populated (for fixing existing orders)
-router.get("/fix/florist", async (req, res) => {
+// Aggregation analytics for florist dashboards (multi-stage pipeline)
+router.get(
+  "/analytics/florist/:floristId",
+  requireAnyRole("florist", "admin"),
+  requireSelfIfRole("florist", "floristId"),
+  async (req, res, next) => {
+  try {
+    const floristId = String(req.params.floristId);
+
+    const pipeline = [
+      { $match: { floristId } },
+      {
+        $facet: {
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalRevenue: { $sum: "$totalPrice" },
+              },
+            },
+            { $project: { _id: 0 } },
+          ],
+          byStatus: [
+            {
+              $group: {
+                _id: "$status",
+                count: { $sum: 1 },
+                revenue: { $sum: "$totalPrice" },
+              },
+            },
+            { $sort: { count: -1 } },
+          ],
+          topFlowers: [
+            { $unwind: "$items" },
+            {
+              $addFields: {
+                flowerObjectId: {
+                  $convert: {
+                    input: "$items.flowerId",
+                    to: "objectId",
+                    onError: null,
+                    onNull: null,
+                  },
+                },
+              },
+            },
+            {
+              $group: {
+                _id: "$flowerObjectId",
+                totalQuantity: { $sum: "$items.quantity" },
+                totalSales: {
+                  $sum: { $multiply: ["$items.quantity", "$items.price"] },
+                },
+              },
+            },
+            { $sort: { totalQuantity: -1 } },
+            { $limit: 5 },
+            {
+              $lookup: {
+                from: "flowers",
+                localField: "_id",
+                foreignField: "_id",
+                as: "flower",
+              },
+            },
+            {
+              $unwind: {
+                path: "$flower",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                flowerId: "$_id",
+                name: "$flower.name",
+                totalQuantity: 1,
+                totalSales: 1,
+              },
+            },
+          ],
+        },
+      },
+    ];
+
+    const [result] = await Order.aggregate(pipeline);
+    const summary = (result && result.summary && result.summary[0]) || {
+      totalOrders: 0,
+      totalRevenue: 0,
+    };
+
+    res.json({
+      floristId,
+      summary,
+      byStatus: result?.byStatus || [],
+      topFlowers: result?.topFlowers || [],
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Advanced updates on embedded items using $push/$pull/$inc/$set and positional operator
+router.post("/:id/items", async (req, res) => {
+  try {
+    if (!req.user || !["user", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    const { flowerId, quantity, price } = req.body;
+    const qty = Number(quantity);
+    const unitPrice = Number(price);
+
+    if (!flowerId || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(unitPrice)) {
+      return res.status(400).json({ message: "flowerId, quantity (>0), and price are required" });
+    }
+
+    const existing = await Order.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    if (req.user.role === "user") {
+      if (String(existing.userId) !== String(req.user.id)) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      if (existing.status !== "pending") {
+        return res.status(400).json({ message: "Only pending orders can be modified" });
+      }
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        $push: {
+          items: {
+            flowerId: String(flowerId),
+            quantity: qty,
+            price: unitPrice,
+          },
+        },
+        $inc: {
+          totalPrice: qty * unitPrice,
+        },
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.json(order);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.patch("/:id/items/:flowerId", async (req, res) => {
+  try {
+    if (!req.user || !["user", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    const updates = {};
+    if (req.body.quantity !== undefined) {
+      const qty = Number(req.body.quantity);
+      if (!Number.isFinite(qty) || qty <= 0) {
+        return res.status(400).json({ message: "quantity must be a positive number" });
+      }
+      updates["items.$.quantity"] = qty;
+    }
+    if (req.body.price !== undefined) {
+      const unitPrice = Number(req.body.price);
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        return res.status(400).json({ message: "price must be a non-negative number" });
+      }
+      updates["items.$.price"] = unitPrice;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "Provide quantity and/or price to update" });
+    }
+
+    const existing = await Order.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    if (req.user.role === "user") {
+      if (String(existing.userId) !== String(req.user.id)) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      if (existing.status !== "pending") {
+        return res.status(400).json({ message: "Only pending orders can be modified" });
+      }
+    }
+
+    const order = await Order.findOneAndUpdate(
+      { _id: req.params.id, "items.flowerId": String(req.params.flowerId) },
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: "Order or item not found" });
+    }
+
+    res.json(order);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete("/:id/items/:flowerId", async (req, res) => {
+  try {
+    if (!req.user || !["user", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    const order = await Order.findOne(
+      { _id: req.params.id, "items.flowerId": String(req.params.flowerId) },
+      { items: 1, totalPrice: 1, userId: 1, status: 1 }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: "Order or item not found" });
+    }
+
+    if (req.user.role === "user") {
+      if (String(order.userId) !== String(req.user.id)) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      if (order.status !== "pending") {
+        return res.status(400).json({ message: "Only pending orders can be modified" });
+      }
+    }
+
+    const item = order.items.find(
+      (entry) => String(entry.flowerId) === String(req.params.flowerId)
+    );
+    const decrement = item ? Number(item.price || 0) * Number(item.quantity || 0) : 0;
+
+    const updated = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        $pull: { items: { flowerId: String(req.params.flowerId) } },
+        $inc: { totalPrice: -decrement },
+      },
+      { new: true }
+    );
+
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+
+router.get("/fix/florist", requireRole("admin"), async (req, res, next) => {
   try {
     const orders = await Order.find({
       $or: [
@@ -150,12 +581,12 @@ router.get("/fix/florist", async (req, res) => {
         : 'All orders have floristId'
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// NEW: Update orders to add floristId from flower data
-router.put("/fix/add-florist-id", async (req, res) => {
+
+router.put("/fix/add-florist-id", requireRole("admin"), async (req, res, next) => {
   try {
     const ordersWithoutFloristId = await Order.find({
       $or: [
@@ -171,7 +602,7 @@ router.put("/fix/add-florist-id", async (req, res) => {
     for (const order of ordersWithoutFloristId) {
       try {
         if (order.items && order.items.length > 0) {
-          // Get the first flower to find floristId
+          
           const firstFlower = await Flower.findById(order.items[0].flowerId);
           if (firstFlower && firstFlower.floristId) {
             order.floristId = firstFlower.floristId;
@@ -192,29 +623,79 @@ router.put("/fix/add-florist-id", async (req, res) => {
       message: `Updated ${updatedCount} orders with floristId`
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 router.put("/:id/status", async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status },
-      { new: true }
-    );
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const status = String(req.body.status || "").toLowerCase();
+    if (!status) {
+      return res.status(400).json({ message: "status is required" });
+    }
+
+    const allowedStatuses = allowedStatusByRole[req.user.role] || [];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (req.user.role === "user" && String(order.userId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    if (req.user.role === "florist" && String(order.floristId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    if (req.user.role === "deliver" && String(order.deliverId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    order.status = status;
+    await order.save();
     res.json(order);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// Assign delivery partner to order
+
 router.put("/:id/assign-deliver", async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    if (!["deliver", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    let deliverId = req.body.deliverId;
+    if (req.user.role === "deliver") {
+      deliverId = req.user.id;
+    }
+
+    if (!deliverId) {
+      return res.status(400).json({ message: "deliverId is required" });
+    }
+
+    const existing = await Order.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    if (req.user.role === "deliver" && existing.deliverId && String(existing.deliverId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     const order = await Order.findByIdAndUpdate(
       req.params.id,
-      { deliverId: req.body.deliverId },
+      { deliverId: String(deliverId) },
       { new: true }
     );
     res.json(order);
@@ -223,8 +704,8 @@ router.put("/:id/assign-deliver", async (req, res) => {
   }
 });
 
-// NEW: Update order floristId
-router.put("/:id/florist", async (req, res) => {
+
+router.put("/:id/florist", requireRole("admin"), async (req, res) => {
   try {
     const order = await Order.findByIdAndUpdate(
       req.params.id,
@@ -239,6 +720,22 @@ router.put("/:id/florist", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (!isAdmin(req) && req.user.role === "user" && String(order.userId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    if (!isAdmin(req) && req.user.role !== "user") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     await Order.findByIdAndDelete(req.params.id);
     res.json({ message: "Order deleted" });
   } catch (err) {

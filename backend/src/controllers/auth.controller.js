@@ -6,6 +6,16 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, city, role, phone, shopName } = req.body;
 
+    if (role === "admin") {
+      const adminSecret = req.body.adminSecret;
+      if (!process.env.ADMIN_SECRET) {
+        return res.status(403).json({ message: "Admin registration disabled" });
+      }
+      if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+        return res.status(403).json({ message: "Invalid admin secret" });
+      }
+    }
+
     const exists = await User.findOne({ email });
     if (exists) {
       return res.status(400).json({ message: "User already exists" });
@@ -13,16 +23,14 @@ exports.register = async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    // Create user data object
     const userData = {
       name,
       email,
       password: hashed,
-      role: role || "user", // Use provided role or default to "user"
+      role: role || "user",
       city: city || "",
     };
 
-    // Add optional fields if provided
     if (phone) userData.phone = phone;
     if (shopName) userData.shopName = shopName;
 
@@ -78,7 +86,6 @@ exports.login = async (req, res) => {
   }
 };
 
-// Simple reset password by email (no email link)
 exports.resetPassword = async (req, res) => {
   try {
     const { email, newPassword } = req.body;

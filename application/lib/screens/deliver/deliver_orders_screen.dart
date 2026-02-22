@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:application/services/api_client.dart';
 
 class DeliverOrdersScreen extends StatefulWidget {
   final String authToken;
@@ -23,6 +23,17 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
   String _error = '';
   String _statusFilter = 'All';
 
+  Map<String, String> _authHeaders({bool includeJson = false}) {
+    final headers = <String, String>{'Accept': 'application/json'};
+    if (includeJson) {
+      headers['Content-Type'] = 'application/json';
+    }
+    if (widget.authToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer ${widget.authToken}';
+    }
+    return headers;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -37,13 +48,13 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
     });
 
     try {
-      final availableResponse = await http.get(
-        Uri.parse('http://localhost:4040/api/orders/available'),
-        headers: {'Accept': 'application/json'},
+      final availableResponse = await ApiClient.get(
+        '/api/orders/available',
+        headers: _authHeaders(),
       );
-      final myResponse = await http.get(
-        Uri.parse('http://localhost:4040/api/orders/deliver/${widget.userId}'),
-        headers: {'Accept': 'application/json'},
+      final myResponse = await ApiClient.get(
+        '/api/orders/deliver/${widget.userId}',
+        headers: _authHeaders(),
       );
 
       if (availableResponse.statusCode == 200 &&
@@ -120,12 +131,9 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
 
   Future<void> _acceptOrder(String orderId) async {
     try {
-      final assignResponse = await http.put(
-        Uri.parse('http://localhost:4040/api/orders/$orderId/assign-deliver'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+      final assignResponse = await ApiClient.put(
+        '/api/orders/$orderId/assign-deliver',
+        headers: _authHeaders(includeJson: true),
         body: json.encode({'deliverId': widget.userId}),
       );
 
@@ -144,12 +152,9 @@ class _DeliverOrdersScreenState extends State<DeliverOrdersScreen> {
 
   Future<void> _updateStatus(String orderId, String status) async {
     try {
-      final response = await http.put(
-        Uri.parse('http://localhost:4040/api/orders/$orderId/status'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+      final response = await ApiClient.put(
+        '/api/orders/$orderId/status',
+        headers: _authHeaders(includeJson: true),
         body: json.encode({'status': status}),
       );
       if (response.statusCode != 200) {

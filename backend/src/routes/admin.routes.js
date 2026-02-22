@@ -2,13 +2,14 @@ const express = require('express');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 const requireRole = require('../middleware/requireRole');
+const { applyQueryOptions, buildPaginationMeta } = require('../utils/query');
 
 const router = express.Router();
 
 router.use(authMiddleware);
 router.use(requireRole('admin'));
 
-router.get('/users', async (req, res) => {
+router.get('/users', async (req, res, next) => {
   try {
     const { role, status, q } = req.query;
     const filter = {};
@@ -33,17 +34,27 @@ router.get('/users', async (req, res) => {
       ];
     }
 
-    const users = await User.find(filter)
-      .select('-password')
-      .sort({ createdAt: -1 });
+    const baseQuery = User.find(filter).select('-password');
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: '-createdAt',
+    });
+    const users = await query;
+
+    if (pagination) {
+      const total = await User.countDocuments(filter);
+      return res.json({
+        data: users,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
 
     res.json(users);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
-router.patch('/users/:id', async (req, res) => {
+router.patch('/users/:id', async (req, res, next) => {
   try {
     const allowedFields = [
       'name',
@@ -89,11 +100,11 @@ router.patch('/users/:id', async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
-router.delete('/users/:id', async (req, res) => {
+router.delete('/users/:id', async (req, res, next) => {
   try {
     if (req.user && req.user.id === req.params.id) {
       return res
@@ -109,7 +120,7 @@ router.delete('/users/:id', async (req, res) => {
 
     res.json({ message: 'User deleted' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 

@@ -1,58 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Auth Test</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FlowerApplication Auth Test</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --pink: #e91e63;
+      --pink-soft: #f8c6d5;
+      --pink-light: #fde7ee;
+      --ink: #1f1f1f;
+      --muted: #6b6b6b;
+      --bg: #f8f8fb;
+      --card: #ffffff;
+      --stroke: #f0d6df;
+      --shadow: 0 14px 40px rgba(233, 30, 99, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Manrope', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    header {
+      padding: 24px 6vw 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-weight: 800;
+    }
+
+    .brand-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--pink), #ff7aa8);
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 700;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: var(--muted);
+      margin-left: 16px;
+      font-weight: 600;
+    }
+
+    nav a:hover { color: var(--pink); }
+
+    .wrap {
+      padding: 10px 6vw 60px;
+    }
+
+    .hero {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 20px;
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 18px;
+      border: 1px solid var(--stroke);
+      box-shadow: 0 10px 25px rgba(233, 30, 99, 0.08);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+    }
+
+    .form {
+      display: grid;
+      gap: 10px;
+    }
+
+    input, select {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--stroke);
+      font-size: 14px;
+      background: #fff;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 999px;
+      border: none;
+      background: var(--pink);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .notice {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--pink-light);
+      color: var(--pink);
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+
+    .muted { color: var(--muted); font-size: 13px; }
+    .hidden { display: none; }
+  </style>
 </head>
 <body>
-  <h1>Register / Login Test</h1>
+  <header>
+    <div class="brand">
+      <div class="brand-badge">FA</div>
+      <div>
+        <div>Auth Test</div>
+        <small class="muted">FlowerApplication</small>
+      </div>
+    </div>
+    <nav>
+      <a href="/">Landing</a>
+      <a href="/admin">Admin</a>
+      <a href="/api-docs">API Docs</a>
+    </nav>
+  </header>
 
-  <h2>Register</h2>
-  <input id="regName" placeholder="Name">
-  <input id="regEmail" placeholder="Email">
-  <input id="regPassword" placeholder="Password" type="password">
-  <input id="regCity" placeholder="City">
-  <button onclick="register()">Register</button>
-  <pre id="regResult"></pre>
+  <div class="wrap">
+    <div class="hero">
+      <h2 style="margin:0 0 8px;">Register and Login</h2>
+      <div class="muted">Admin registration is protected by an admin secret.</div>
+    </div>
 
-  <h2>Login</h2>
-  <input id="loginEmail" placeholder="Email">
-  <input id="loginPassword" placeholder="Password" type="password">
-  <button onclick="login()">Login</button>
-  <pre id="loginResult"></pre>
+    <div class="grid">
+      <div class="card">
+        <h3>Register Admin</h3>
+        <form id="register-form" class="form">
+          <input id="reg-name" placeholder="Full name" required />
+          <input id="reg-email" type="email" placeholder="Email" required />
+          <input id="reg-password" type="password" placeholder="Password" required />
+          <input id="reg-city" placeholder="City" />
+          <input id="reg-secret" placeholder="Admin secret" required />
+          <button class="button" type="submit">Create Admin</button>
+        </form>
+        <div class="muted">Only admin registrations are allowed here.</div>
+        <div id="reg-result" class="notice hidden"></div>
+      </div>
+    </div>
+  </div>
 
   <script>
-    const API_URL = "http://localhost:4040/api/auth";
+    const apiBase = window.location.origin + '/api/auth';
+    const show = (el, message, isError = false) => {
+      el.textContent = message;
+      el.classList.remove('hidden');
+      el.style.background = isError ? '#ffe3e3' : '#fde7ee';
+      el.style.color = isError ? '#c62828' : '#e91e63';
+    };
 
-    async function register() {
-      const name = document.getElementById("regName").value;
-      const email = document.getElementById("regEmail").value;
-      const password = document.getElementById("regPassword").value;
-      const city = document.getElementById("regCity").value;
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        name: document.getElementById('reg-name').value.trim(),
+        email: document.getElementById('reg-email').value.trim(),
+        password: document.getElementById('reg-password').value,
+        city: document.getElementById('reg-city').value.trim(),
+        role: 'admin',
+      };
+      body.adminSecret = document.getElementById('reg-secret').value.trim();
 
-      const res = await fetch(`${API_URL}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, city })
+      const res = await fetch(`${apiBase}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const name = data?.user?.name || body.name || 'User';
+        show(
+          document.getElementById('reg-result'),
+          `Registration successful. Welcome, ${name}.`
+        );
+      } else {
+        const message = data?.message || data?.error || 'Registration failed.';
+        show(
+          document.getElementById('reg-result'),
+          `Registration failed: ${message}`,
+          true
+        );
+      }
+    });
 
-      const data = await res.json();
-      document.getElementById("regResult").textContent = JSON.stringify(data, null, 2);
-    }
-
-    async function login() {
-      const email = document.getElementById("loginEmail").value;
-      const password = document.getElementById("loginPassword").value;
-
-      const res = await fetch(`${API_URL}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await res.json();
-      document.getElementById("loginResult").textContent = JSON.stringify(data, null, 2);
-    }
+    
   </script>
 </body>
 </html>

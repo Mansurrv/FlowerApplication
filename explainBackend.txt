@@ -1,0 +1,135 @@
+FlowerApplication Backend System
+================================
+
+Overview
+--------
+The backend is a Node.js/Express API backed by MongoDB (Mongoose). It exposes versioned REST endpoints under /api/v1 and serves Swagger UI at /api-docs. It uses JWT authentication, role-based access control, centralized error handling, and standard pagination/sorting helpers.
+
+Startup Flow
+------------
+1. backend/src/server.js
+   - Loads environment variables from backend/.env.
+   - Validates required env vars (MONGO_URI, JWT_SECRET).
+   - Connects to MongoDB, then starts the HTTP server.
+
+2. backend/src/app.js
+   - Creates the Express app.
+   - Adds middleware: CORS, JSON body parsing.
+   - Serves Swagger UI at /api-docs using backend/src/docs/openapi.yaml.
+   - Mounts all routes under /api/v1 and keeps /api as a legacy alias.
+   - Adds centralized 404 and error handlers.
+
+Environment Configuration
+-------------------------
+- backend/.env holds secrets and runtime configuration.
+- backend/.env.example documents required variables.
+- backend/src/config/env.js enforces required variables at startup.
+- Root .gitignore prevents committing .env files.
+
+Centralized Error Handling
+--------------------------
+- backend/src/middleware/errorHandler.js provides:
+  - notFound middleware (404 for unknown routes).
+  - errorHandler middleware (统一 JSON errors, CastError/ValidationError handling).
+- Routes use next(err) to send errors into the centralized handler.
+
+Pagination, Filtering, Sorting Standards
+-----------------------------------------
+- backend/src/utils/query.js defines shared query helpers.
+- Standard query params:
+  - page (enables pagination when provided)
+  - limit (page size, max 100)
+  - sort (comma-separated fields, prefix '-' for descending)
+  - fields (comma-separated projection)
+- When page/limit is used, list endpoints respond with:
+  { data: [...], pagination: { total, page, limit, pages } }
+- Implemented on common list endpoints (flowers, orders, users, admin users, categories, cities, promotions).
+
+Authentication and Authorization
+--------------------------------
+- backend/src/middleware/authMiddleware.js verifies JWT and sets req.user.
+- backend/src/middleware/requireRole.js enforces role-based access.
+
+Core Controllers
+----------------
+- backend/src/controllers/auth.controller.js
+  - register, login, resetPassword.
+- backend/src/controllers/city.controller.js
+  - getCities, addCity.
+- backend/src/controllers/florist.controller.js
+  - florist profile, updates, stats, orders, florist flowers mapping.
+
+Routes
+------
+- backend/src/routes/auth.routes.js
+  - /register, /login, /reset-password.
+- backend/src/routes/admin.routes.js
+  - Admin-only user management, filters, status updates, delete.
+- backend/src/routes/category.routes.js
+  - CRUD for categories, supports pagination/sort.
+- backend/src/routes/city.routes.js
+  - List/add cities, supports pagination/sort.
+- backend/src/routes/flower.routes.js
+  - CRUD and search, advanced filters, popular list, category/city filters.
+- backend/src/routes/order.routes.js
+  - Create orders and list by user/florist/deliver/availability.
+  - Filtering by status/userId/floristId/deliverId and pagination support.
+- backend/src/routes/orderItem.routes.js
+  - Create and list order items by order.
+- backend/src/routes/payment.routes.js
+  - Create and list payments by order.
+- backend/src/routes/route.routes.js
+  - Create and read delivery routes by order.
+- backend/src/routes/favorite.routes.js
+  - Add, list, remove favorites by user.
+- backend/src/routes/connection.routes.js
+  - User connection workflow (request, current, history).
+- backend/src/routes/florist.routes.js
+  - Florist profile, statistics, flowers, and orders.
+- backend/src/routes/promotion.routes.js
+  - Promotions list/create/delete, supports pagination/sort.
+- backend/src/routes/user.routes.js
+  - User list and profile updates.
+
+Models (Mongoose Schemas)
+-------------------------
+- backend/src/models/User.js
+  - User auth + profile fields, role, status.
+- backend/src/models/Flower.js
+  - Product catalog data, availability, florist, category.
+- backend/src/models/Category.js
+  - Flower categories.
+- backend/src/models/City.js
+  - City list.
+- backend/src/models/Order.js
+  - Order with items, status, order number generator.
+- backend/src/models/OrderItem.js
+  - Item lines for orders.
+- backend/src/models/Payment.js
+  - Payment records per order.
+- backend/src/models/Favorite.js
+  - User favorites.
+- backend/src/models/Route.js
+  - Delivery route details.
+- backend/src/models/Connection.js
+  - User-to-user connection system.
+- backend/src/models/Promotion.js
+  - Promotion items for the app UI.
+
+Indexes and Optimization
+------------------------
+- Orders: compound indexes on floristId+status+createdAt, userId+createdAt, deliverId+status+createdAt, and items.flowerId.
+  - Justification: most order list endpoints filter by status/userId/floristId/deliverId and sort by recency; indexing these patterns reduces scan cost and improves pagination.
+- Flowers: compound indexes on categoryId+available+price, floristId+available+createdAt, city+available+createdAt.
+  - Justification: flower browsing/search endpoints filter by category/city/availability with price ranges and sort by createdAt for "popular/newest" lists.
+- Favorites: unique compound index on userId+flowerId to prevent duplicates and speed up per-user favorite lookups.
+- Existing unique/compound indexes: User.email, City.name, Order.orderNumber, and Connection compound indexes.
+
+Swagger / OpenAPI
+-----------------
+- backend/src/docs/openapi.yaml is the API contract.
+- Swagger UI is available at /api-docs.
+
+Misc
+----
+- backend/src/index.html is a small manual test page for auth endpoints.

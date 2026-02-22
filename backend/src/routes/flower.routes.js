@@ -1,8 +1,15 @@
 const router = require("express").Router();
 const Flower = require("../models/Flower");
+const Category = require("../models/Category");
+const { applyQueryOptions, buildPaginationMeta } = require("../utils/query");
+const authMiddleware = require("../middleware/authMiddleware");
+const requireAnyRole = require("../middleware/requireAnyRole");
 
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, requireAnyRole("florist", "admin"), async (req, res) => {
   try {
+    if (req.user.role === "florist") {
+      req.body.floristId = req.user.id;
+    }
     const flower = await Flower.create(req.body);
     res.status(201).json(flower);
   } catch (err) {
@@ -10,15 +17,73 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
-  const flowers = await Flower.find()
-    .populate("categoryId", "name")
-    .populate("floristId", "name shopName city");
+router.get("/", async (req, res, next) => {
+  try {
+    const {
+      q,
+      categoryId,
+      floristId,
+      city,
+      available,
+      minPrice,
+      maxPrice,
+    } = req.query;
+    const filter = {};
 
-  res.json(flowers);
+    if (q && String(q).trim().length > 0) {
+      filter.$or = [
+        { name: { $regex: String(q), $options: "i" } },
+        { description: { $regex: String(q), $options: "i" } },
+      ];
+    }
+
+    if (categoryId) {
+      filter.categoryId = categoryId;
+    }
+
+    if (floristId) {
+      filter.floristId = floristId;
+    }
+
+    if (city) {
+      filter.city = city;
+    }
+
+    if (available !== undefined) {
+      filter.available = String(available) === "true";
+    }
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    const baseQuery = Flower.find(filter)
+      .populate("categoryId", "name")
+      .populate("floristId", "name shopName city");
+
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+
+    const flowers = await query;
+
+    if (pagination) {
+      const total = await Flower.countDocuments(filter);
+      return res.json({
+        data: flowers,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
+    res.json(flowers);
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.get("/search/advanced", async (req, res) => {
+router.get("/search/advanced", async (req, res, next) => {
   try {
     const { q, category, minPrice, maxPrice, available } = req.query;
     const query = {};
@@ -61,15 +126,11 @@ router.get("/search/advanced", async (req, res) => {
     });
   } catch (error) {
     console.error("Advanced search error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
+    next(error);
   }
 });
 
-router.get("/popular", async (req, res) => {
+router.get("/popular", async (req, res, next) => {
   try {
     const popularFlowers = await Flower.find({ available: true })
       .sort({ createdAt: -1 })
@@ -81,19 +142,15 @@ router.get("/popular", async (req, res) => {
     res.status(200).json({
       success: true,
       count: popularFlowers.length,
-      flowers: popularFlowers  // Make sure this is always an array
+      flowers: popularFlowers  
     });
   } catch (error) {
     console.error("Popular flowers error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
+    next(error);
   }
 });
 
-router.get("/search", async (req, res) => {
+router.get("/search", async (req, res, next) => {
   try {
     const { q } = req.query;
     
@@ -122,62 +179,105 @@ router.get("/search", async (req, res) => {
     });
   } catch (error) {
     console.error("Search error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
+    next(error);
   }
 });
 
-router.get("/popular", async (req, res) => {
+router.get("/category/:categoryId", async (req, res, next) => {
   try {
-    const popularFlowers = await Flower.find({ available: true })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .populate("categoryId", "name")
-      .populate("floristId", "shopName")
-      .lean();
+    const filter = { categoryId: req.params.categoryId };
+    const baseQuery = Flower.find(filter);
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+    const flowers = await query;
 
-    res.status(200).json({
-      success: true,
-      count: popularFlowers.length,
-      flowers: popularFlowers 
-    });
-  } catch (error) {
-    console.error("Popular flowers error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
+    if (pagination) {
+      const total = await Flower.countDocuments(filter);
+      return res.json({
+        data: flowers,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
+    res.json(flowers);
+  } catch (err) {
+    next(err);
   }
 });
 
-router.get("/category/:categoryId", async (req, res) => {
-  const flowers = await Flower.find({
-    categoryId: req.params.categoryId
-  });
-  res.json(flowers);
+router.get("/city/:city", async (req, res, next) => {
+  try {
+    const filter = { city: req.params.city };
+    const baseQuery = Flower.find(filter);
+    const { query, pagination } = applyQueryOptions(baseQuery, req.query, {
+      defaultSort: "-createdAt",
+    });
+    const flowers = await query;
+
+    if (pagination) {
+      const total = await Flower.countDocuments(filter);
+      return res.json({
+        data: flowers,
+        pagination: buildPaginationMeta(total, pagination.page, pagination.limit),
+      });
+    }
+
+    res.json(flowers);
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.get("/city/:city", async (req, res) => {
-  const flowers = await Flower.find({ city: req.params.city });
-  res.json(flowers);
+router.get("/:id", async (req, res, next) => {
+  try {
+    const flower = await Flower.findById(req.params.id)
+      .populate("categoryId", "name")
+      .populate("floristId", "name shopName city");
+    if (!flower) {
+      return res.status(404).json({ message: "Flower not found" });
+    }
+    res.json(flower);
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.put("/:id", async (req, res) => {
-  const flower = await Flower.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    { new: true }
-  );
-  res.json(flower);
+router.put("/:id", authMiddleware, requireAnyRole("florist", "admin"), async (req, res, next) => {
+  try {
+    const existing = await Flower.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Flower not found" });
+    }
+    if (req.user.role === "florist" && String(existing.floristId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const flower = await Flower.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    res.json(flower);
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.delete("/:id", async (req, res) => {
-  await Flower.findByIdAndDelete(req.params.id);
-  res.json({ message: "Flower deleted" });
+router.delete("/:id", authMiddleware, requireAnyRole("florist", "admin"), async (req, res, next) => {
+  try {
+    const existing = await Flower.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Flower not found" });
+    }
+    if (req.user.role === "florist" && String(existing.floristId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    await Flower.findByIdAndDelete(req.params.id);
+    res.json({ message: "Flower deleted" });
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;

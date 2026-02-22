@@ -1,11 +1,11 @@
 const User = require("../models/User");
-const Flower = require("../models/Flower"); // If you have a Flower model
-const Order = require("../models/Order"); // If you have an Order model
+const Flower = require("../models/Flower"); 
+const Order = require("../models/Order"); 
 
-// Get florist profile
+
 exports.getProfile = async (req, res) => {
   try {
-    const userId = req.user.id; // From JWT middleware
+    const userId = req.user.id; 
     
     const user = await User.findById(userId).select('-password');
     
@@ -13,7 +13,7 @@ exports.getProfile = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     
-    // Ensure user is a florist
+    
     if (user.role !== 'florist') {
       return res.status(403).json({ message: "Access denied. User is not a florist" });
     }
@@ -35,7 +35,7 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// Update florist profile
+
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -51,7 +51,7 @@ exports.updateProfile = async (req, res) => {
       return res.status(403).json({ message: "Access denied. User is not a florist" });
     }
     
-    // Update fields
+    
     if (shopName !== undefined) user.shopName = shopName;
     if (phone !== undefined) user.phone = phone;
     if (address !== undefined) user.address = address;
@@ -78,7 +78,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// Get florist statistics - updated version
+
 exports.getStatistics = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -89,7 +89,7 @@ exports.getStatistics = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
     
-    // Count flowers
+    
     let totalFlowers = 0;
     let availableFlowers = 0;
     let soldOutFlowers = 0;
@@ -110,7 +110,7 @@ exports.getStatistics = async (req, res) => {
       console.log('Flower count error:', flowerErr.message);
     }
     
-    // Count orders
+    
     let totalOrders = 0;
     let pendingOrders = 0;
     let completedOrders = 0;
@@ -118,7 +118,7 @@ exports.getStatistics = async (req, res) => {
     
     try {
       if (Order) {
-        // Count all orders for this florist
+        
         totalOrders = await Order.countDocuments({ floristId: userId });
         pendingOrders = await Order.countDocuments({ 
           floristId: userId, 
@@ -129,7 +129,7 @@ exports.getStatistics = async (req, res) => {
           status: 'completed' 
         });
         
-        // Calculate total revenue from completed orders
+        
         const completedOrdersList = await Order.find({ 
           floristId: userId, 
           status: 'completed' 
@@ -164,7 +164,7 @@ exports.getStatistics = async (req, res) => {
   }
 };
 
-// Get florist's orders
+
 exports.getOrders = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -199,7 +199,7 @@ exports.getOrders = async (req, res) => {
   }
 };
 
-// In controllers/florist.controller.js
+
 exports.getFlowers = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -217,13 +217,13 @@ exports.getFlowers = async (req, res) => {
         .sort({ createdAt: -1 });
     }
     
-    // Map the fields correctly
+    
     const formattedFlowers = flowers.map(flower => ({
       _id: flower._id,
       name: flower.name,
       price: flower.price,
       description: flower.description,
-      image_url: flower.image_url || flower.imageUrl, // Handle both
+      image_url: flower.image_url || flower.imageUrl, 
       available: flower.available,
       categoryId: flower.categoryId,
       floristId: flower.floristId,

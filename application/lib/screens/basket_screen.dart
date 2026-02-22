@@ -1,14 +1,92 @@
+import 'dart:convert';
+
 import 'package:application/models/order_item.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/basket_item.dart';
 import '../provider/basket_provider.dart';
 import 'package:provider/provider.dart';
 import '../services/order_service.dart';
 import '../services/auth_service.dart'; // Add this import
+import '../services/api_client.dart';
 
-class BasketScreen extends StatelessWidget {
+ImageProvider _basketImageProvider(String imageUrl) {
+  final trimmed = imageUrl.trim();
+  if (trimmed.isEmpty) {
+    return const AssetImage('assets/placeholder.jpg');
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return NetworkImage(trimmed);
+  }
+  if (trimmed.startsWith('/')) {
+    final baseUrl =
+        ApiClient.primaryBaseUrl.endsWith('/')
+            ? ApiClient.primaryBaseUrl.substring(
+              0,
+              ApiClient.primaryBaseUrl.length - 1,
+            )
+            : ApiClient.primaryBaseUrl;
+    return NetworkImage('$baseUrl$trimmed');
+  }
+  if (trimmed.startsWith('assets/') || trimmed.startsWith('images/')) {
+    return AssetImage(trimmed);
+  }
+  return const AssetImage('assets/placeholder.jpg');
+}
+
+Widget _buildItemThumbnail(
+  String imageUrl, {
+  double size = 80,
+  double radius = 8,
+  double iconSize = 24,
+}) {
+  return Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(radius),
+      color: Colors.grey[100],
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Image(
+        image: _basketImageProvider(imageUrl),
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey[200],
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.local_florist,
+              size: iconSize,
+              color: Colors.grey[500],
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
+
+class BasketScreen extends StatefulWidget {
   const BasketScreen({super.key});
+
+  @override
+  State<BasketScreen> createState() => _BasketScreenState();
+}
+
+class _BasketScreenState extends State<BasketScreen> {
+  final TextEditingController _wishlistLinkController =
+      TextEditingController();
+
+  @override
+  void dispose() {
+    _wishlistLinkController.dispose();
+    super.dispose();
+  }
 
   // Move these methods outside build but keep them as instance methods
   Widget _buildEmptyBasket(BuildContext context) {
@@ -49,6 +127,219 @@ class BasketScreen extends StatelessWidget {
               ),
             ),
             child: Text('Browse Flowers'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _extractItemsParam(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return '';
+
+    try {
+      final uri = Uri.parse(trimmed);
+      final param = uri.queryParameters['items'];
+      if (param != null && param.isNotEmpty) {
+        return param;
+      }
+    } catch (_) {}
+
+    final index = trimmed.indexOf('items=');
+    if (index != -1) {
+      final start = index + 'items='.length;
+      final end = trimmed.indexOf('&', start);
+      return end == -1 ? trimmed.substring(start) : trimmed.substring(start, end);
+    }
+
+    return trimmed;
+  }
+
+  String _decodeBase64Url(String input) {
+    var normalized = input.replaceAll('-', '+').replaceAll('_', '/');
+    switch (normalized.length % 4) {
+      case 0:
+        break;
+      case 2:
+        normalized += '==';
+        break;
+      case 3:
+        normalized += '=';
+        break;
+      default:
+        return '';
+    }
+    try {
+      return utf8.decode(base64.decode(normalized));
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Map<String, dynamic>? _parseWishlistPayload(String input) {
+    final encoded = _extractItemsParam(input);
+    if (encoded.isEmpty) return null;
+    final decoded = _decodeBase64Url(encoded);
+    if (decoded.isEmpty) return null;
+    try {
+      final dynamic payload = jsonDecode(decoded);
+      if (payload is Map<String, dynamic>) return payload;
+      if (payload is Map) {
+        return Map<String, dynamic>.from(payload);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  double _parseDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  void _addItemsFromLink(
+    BuildContext context,
+    BasketProvider basketProvider,
+  ) {
+    final input = _wishlistLinkController.text.trim();
+    if (input.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Paste a wishlist link first'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final payload = _parseWishlistPayload(input);
+    final items = payload?['items'];
+    if (payload == null || items is! List) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid wishlist link'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    var addedCount = 0;
+    for (var i = 0; i < items.length; i++) {
+      final raw = items[i];
+      if (raw is! Map) continue;
+      final data = Map<String, dynamic>.from(raw);
+
+      final name = data['name']?.toString().trim();
+      var flowerId = data['flowerId']?.toString().trim() ?? '';
+      if (flowerId.isEmpty) {
+        flowerId = 'shared-$i-${DateTime.now().millisecondsSinceEpoch}';
+      }
+      final price = _parseDouble(data['price']);
+      final quantity = _parseInt(data['quantity']);
+      final imageUrl =
+          (data['imageUrl']?.toString().trim().isNotEmpty ?? false)
+              ? data['imageUrl'].toString()
+              : 'assets/placeholder.jpg';
+
+      basketProvider.addItem(
+        BasketItem(
+          id: '${DateTime.now().millisecondsSinceEpoch}-$i',
+          flowerId: flowerId,
+          name: name?.isNotEmpty == true ? name! : 'Flower',
+          price: price,
+          quantity: quantity > 0 ? quantity : 1,
+          imageUrl: imageUrl,
+          floristId: data['floristId']?.toString(),
+          floristName: data['floristName']?.toString(),
+        ),
+      );
+      addedCount++;
+    }
+
+    if (addedCount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No valid items found in the link'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    _wishlistLinkController.clear();
+    FocusScope.of(context).unfocus();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Added $addedCount items to your basket'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  Widget _buildLinkImportSection(
+    BuildContext context,
+    BasketProvider basketProvider,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Add wishlist link',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _wishlistLinkController,
+                  decoration: InputDecoration(
+                    hintText: 'Paste wishlist link here',
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _addItemsFromLink(
+                    context,
+                    basketProvider,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () => _addItemsFromLink(context, basketProvider),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.pink,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text('Add'),
+              ),
+            ],
           ),
         ],
       ),
@@ -113,13 +404,11 @@ class BasketScreen extends StatelessWidget {
             Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.grey[100],
-                image: DecorationImage(
-                  image: AssetImage(item.imageUrl),
-                  fit: BoxFit.cover,
-                ),
+              child: _buildItemThumbnail(
+                item.imageUrl,
+                size: 80,
+                radius: 8,
+                iconSize: 28,
               ),
             ),
             SizedBox(width: 12),
@@ -255,6 +544,131 @@ class BasketScreen extends StatelessWidget {
     );
   }
 
+  String _buildWishlistLink(
+    BasketProvider basketProvider,
+    AuthService authService,
+  ) {
+    final items = basketProvider.items
+        .map(
+          (item) => {
+            'flowerId': item.flowerId,
+            'name': item.name,
+            'price': item.price,
+            'quantity': item.quantity,
+            'imageUrl': item.imageUrl,
+            'floristName': item.floristName,
+          },
+        )
+        .toList();
+
+    final payload = {
+      'items': items,
+      'total': basketProvider.totalPrice,
+      'currency': 'KZT',
+      'from':
+          authService.userData?['name'] ??
+          authService.userData?['email'] ??
+          '',
+      'createdAt': DateTime.now().toUtc().toIso8601String(),
+    };
+
+    final jsonStr = jsonEncode(payload);
+    final encoded = base64UrlEncode(utf8.encode(jsonStr));
+    final baseUrl =
+        ApiClient.primaryBaseUrl.endsWith('/')
+            ? ApiClient.primaryBaseUrl.substring(
+              0,
+              ApiClient.primaryBaseUrl.length - 1,
+            )
+            : ApiClient.primaryBaseUrl;
+    return '$baseUrl/wishlist?items=${Uri.encodeQueryComponent(encoded)}';
+  }
+
+  void _showWishlistLinkDialog(
+    BuildContext context,
+    BasketProvider basketProvider,
+    AuthService authService,
+  ) {
+    if (basketProvider.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your basket is empty'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final link = _buildWishlistLink(basketProvider, authService);
+    final previewLength = 20;
+    final preview =
+        link.length <= previewLength
+            ? link
+            : '${link.substring(0, previewLength)}...';
+    final rootContext = context;
+
+    showDialog(
+      context: rootContext,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Wishlist Link'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Share this link to send your wishlist.'),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        preview,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${link.length} chars',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Full link will be copied.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Close'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: link));
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(rootContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('Wishlist link copied'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.pink,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Copy'),
+              ),
+            ],
+          ),
+    );
+  }
+
   // screens/basket_screen.dart - Update the build method
   @override
   Widget build(BuildContext context) {
@@ -284,9 +698,16 @@ class BasketScreen extends StatelessWidget {
                     ),
                 ],
               ),
-              body: basketProvider.items.isEmpty
-                  ? _buildEmptyBasket(context)
-                  : _buildBasketContent(context, basketProvider),
+              body: Column(
+                children: [
+                  _buildLinkImportSection(context, basketProvider),
+                  Expanded(
+                    child: basketProvider.items.isEmpty
+                        ? _buildEmptyBasket(context)
+                        : _buildBasketContent(context, basketProvider),
+                  ),
+                ],
+              ),
               bottomNavigationBar: basketProvider.items.isNotEmpty
                   ? _buildCheckoutBar(context, basketProvider, authService)
                   : null,
@@ -352,19 +773,11 @@ class BasketScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                       color: Colors.grey[100],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        item.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
-                            Icons.local_florist,
-                            size: 16,
-                            color: Colors.grey,
-                          );
-                        },
-                      ),
+                    child: _buildItemThumbnail(
+                      item.imageUrl,
+                      size: 32,
+                      radius: 8,
+                      iconSize: 14,
                     ),
                   );
                 }).toList(),
@@ -390,43 +803,71 @@ class BasketScreen extends StatelessWidget {
             ],
           ),
           SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () async {
-                // Refresh auth state before checking
-                await authService.refreshAuthState();
-
-                if (!authService.isLoggedIn) {
-                  if (kDebugMode) {
-                    print('User not logged in, showing login prompt');
-                  }
-                  _showLoginPrompt(context);
-                  return;
-                }
-
-                // Check if user has city information
-                if (authService.userData?['city'] == null ||
-                    authService.userData?['city'].isEmpty) {
-                  _showCityPrompt(context, authService, basketProvider);
-                  return;
-                }
-
-                _checkout(context, basketProvider, authService);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.pink,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    _showWishlistLinkDialog(
+                      context,
+                      basketProvider,
+                      authService,
+                    );
+                  },
+                  icon: const Icon(Icons.send),
+                  label: const Text('Send'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.pink,
+                    side: const BorderSide(color: Colors.pink),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
-              child: Text(
-                authService.isLoggedIn ? 'Checkout' : 'Login to Checkout',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    // Refresh auth state before checking
+                    await authService.refreshAuthState();
+
+                    if (!authService.isLoggedIn) {
+                      if (kDebugMode) {
+                        print('User not logged in, showing login prompt');
+                      }
+                      _showLoginPrompt(context);
+                      return;
+                    }
+
+                    // Check if user has city information
+                    if (authService.userData?['city'] == null ||
+                        authService.userData?['city'].isEmpty) {
+                      _showCityPrompt(context, authService, basketProvider);
+                      return;
+                    }
+
+                    _checkout(context, basketProvider, authService);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.pink,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    authService.isLoggedIn ? 'Checkout' : 'Login to Checkout',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -712,6 +1153,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         print('userId: ${order.userId}');
         print('floristId: ${order.floristId}');
         print('city: ${order.city}');
+        final token = widget.authService.authToken;
+        print('authToken length: ${token?.length ?? 0}');
       }
 
       // Call API to create order
@@ -719,7 +1162,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         print('Calling _orderService.createOrder...');
       }
 
-      final createdOrder = await _orderService.createOrder(order);
+      final createdOrder = await _orderService.createOrder(
+        order,
+        authToken: widget.authService.authToken,
+      );
 
       if (kDebugMode) {
         print('Order created successfully!');
@@ -837,13 +1283,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         leading: Container(
                           width: 50,
                           height: 50,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.grey[200],
-                            image: DecorationImage(
-                              image: AssetImage(item.imageUrl),
-                              fit: BoxFit.cover,
-                            ),
+                          child: _buildItemThumbnail(
+                            item.imageUrl,
+                            size: 50,
+                            radius: 8,
+                            iconSize: 20,
                           ),
                         ),
                         title: Text(item.name),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:application/main.dart';
 import '../services/auth_service.dart';
+import '../screens/notifications_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final AuthService authService;
@@ -437,9 +438,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      child: Column(children: [
-        ],
-      ),
+      child: Column(children: []),
     );
   }
 
@@ -485,6 +484,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
+          _buildAccountOption(
+            icon: Icons.notifications,
+            title: 'Wishlist Notifications',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      NotificationsScreen(authService: widget.authService),
+                ),
+              );
+            },
+          ),
+          const Divider(height: 0),
           _buildAccountOption(
             icon: Icons.help_outline,
             title: 'Help & Support',

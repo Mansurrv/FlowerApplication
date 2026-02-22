@@ -1,12 +1,16 @@
 const express = require("express");
 const Connection = require("../models/Connection");
 const User = require("../models/User");
+const authMiddleware = require("../middleware/authMiddleware");
 const router = express.Router();
 const mongoose = require("mongoose");
 
+router.use(authMiddleware);
+
 router.post("/connect", async (req, res) => {
   try {
-    const { userId, targetUserId } = req.body;
+    const userId = req.user.id;
+    const { targetUserId } = req.body;
 
     const user = await User.findById(userId);
     const targetUser = await User.findById(targetUserId);
@@ -152,6 +156,9 @@ router.post("/connect", async (req, res) => {
 router.get("/current/:userId", async (req, res) => {
   try {
     const userId = req.params.userId;
+    if (req.user.role !== "admin" && String(req.user.id) !== String(userId)) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
 
     const connection = await Connection.findOne({
       $or: [
@@ -208,6 +215,9 @@ router.get("/current/:userId", async (req, res) => {
 router.get("/history/:userId", async (req, res) => {
   try {
     const userId = req.params.userId;
+    if (req.user.role !== "admin" && String(req.user.id) !== String(userId)) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
 
     const connections = await Connection.find({
       $or: [
@@ -257,6 +267,9 @@ router.get("/history/:userId", async (req, res) => {
 router.get("/:userId", async (req, res) => {
   try {
     const userId = req.params.userId;
+    if (req.user.role !== "admin" && String(req.user.id) !== String(userId)) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
 
     const connection = await Connection.findOne({
       $or: [

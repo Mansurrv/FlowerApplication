@@ -1,8 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:application/services/api_service.dart';
+import 'package:application/services/api_client.dart';
 
 class AdminUserManagementScreen extends StatefulWidget {
   final String authToken;
@@ -43,14 +42,11 @@ class _AdminUserManagementScreenState
     });
 
     try {
-      final uri = Uri.parse('${ApiService.baseUrl}/api/admin/users').replace(
+      final response = await ApiClient.get(
+        '/api/admin/users',
         queryParameters: {
           'role': widget.role,
         },
-      );
-
-      final response = await http.get(
-        uri,
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer ${widget.authToken}',
@@ -151,8 +147,8 @@ class _AdminUserManagementScreenState
 
   Future<void> _updateStatus(String userId, String status) async {
     try {
-      final response = await http.patch(
-        Uri.parse('${ApiService.baseUrl}/api/admin/users/$userId'),
+      final response = await ApiClient.patch(
+        '/api/admin/users/$userId',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -182,8 +178,8 @@ class _AdminUserManagementScreenState
 
   Future<void> _deleteUser(String userId) async {
     try {
-      final response = await http.delete(
-        Uri.parse('${ApiService.baseUrl}/api/admin/users/$userId'),
+      final response = await ApiClient.delete(
+        '/api/admin/users/$userId',
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer ${widget.authToken}',
